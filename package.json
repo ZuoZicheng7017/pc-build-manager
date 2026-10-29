@@ -1,0 +1,47 @@
+{
+  "name": "pc-build-manager",
+  "private": true,
+  "version": "1.2.0",
+  "type": "module",
+  "description": "个人上门装机管理系统",
+  "scripts": {
+    "dev": "concurrently -k -n API,WEB -c cyan,magenta \"pnpm dev:server\" \"pnpm dev:web\"",
+    "dev:server": "tsx watch server/index.ts",
+    "dev:web": "vite",
+    "build": "tsc --noEmit && vite build",
+    "start": "node --env-file-if-exists=.env --import tsx server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test:api": "node scripts/api-smoke.mjs",
+    "test:ui": "node scripts/e2e.mjs",
+    "restore": "node scripts/restore-backup.mjs"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "adm-zip": "^0.6.1",
+    "archiver": "^8.0.0",
+    "dayjs": "^1.11.13",
+    "lucide-react": "^0.468.0",
+    "pdfkit": "^0.20.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.1",
+    "tsx": "^4.19.2",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.7",
+    "@types/adm-zip": "^0.6.0",
+    "@types/archiver": "^8.0.0",
+    "@types/ffmpeg-installer__ffmpeg": "^1.1.0",
+    "@types/node": "^22.10.5",
+    "@types/pdfkit": "^0.17.7",
+    "@types/react": "^19.0.3",
+    "@types/react-dom": "^19.0.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "playwright-core": "^1.64.1",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7"
+  }
+}

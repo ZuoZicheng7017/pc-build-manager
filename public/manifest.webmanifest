@@ -1,0 +1,18 @@
+{
+  "name": "装机管家 · 上门装机管理",
+  "short_name": "装机管家",
+  "description": "客户、工单、服务项目、收款与现场记录的个人上门装机管理系统",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f6fa",
+  "theme_color": "#0f172a",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
