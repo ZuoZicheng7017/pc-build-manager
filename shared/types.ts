@@ -12,7 +12,7 @@ export type OrderStatus =
 
 export type ServiceType = 'new' | 'upgrade' | 'repair' | 'maintenance' | 'other'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid'
-export type PaymentMethod = 'cash' | 'wechat' | 'alipay' | 'card' | 'other'
+export type PaymentMethod = 'cash' | 'wechat' | 'alipay' | 'xianyu' | 'card' | 'other'
 export type Priority = 'normal' | 'urgent'
 export type PartsSource = 'customer' | 'shop' | 'mixed'
 export type PartStatus = 'active' | 'inactive'
@@ -435,6 +435,7 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: '现金',
   wechat: '微信',
   alipay: '支付宝',
+  xianyu: '闲鱼',
   card: '银行卡',
   other: '其他',
 }

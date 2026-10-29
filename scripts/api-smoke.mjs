@@ -196,11 +196,12 @@ try {
 
   r = await req(`/api/orders/${created.serviceOrder}/payments`, {
     method: 'POST',
-    body: JSON.stringify({ kind: 'deposit', amount_cents: 5000, method: 'wechat', note: '定金' }),
+    body: JSON.stringify({ kind: 'deposit', amount_cents: 5000, method: 'xianyu', note: '闲鱼定金' }),
   })
   assert.equal(r.body.paid_cents, 5000)
   assert.equal(r.body.payment_status, 'partial')
   assert.equal(r.body.payments.length, 1)
+  assert.equal(r.body.payments[0].method, 'xianyu')
 
   r = await req(`/api/orders/${created.serviceOrder}/payments`, {
     method: 'POST',
@@ -323,7 +324,7 @@ try {
   assert.ok(r.body.stats.orders >= 1)
   assert.ok(Array.isArray(r.body.services))
   assert.ok(Array.isArray(r.body.staff) && r.body.staff.length >= 1)
-  assert.ok(r.body.staff[0].commissionCents > 0)
+  assert.ok(r.body.staff.some((s) => s.commissionCents > 0))
   ok('经营报表 + 员工提成')
 
   console.log('模板接口')

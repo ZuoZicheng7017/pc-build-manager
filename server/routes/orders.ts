@@ -55,7 +55,7 @@ const serviceSchema = z.object({
 const paymentSchema = z.object({
   kind: z.enum(['deposit', 'final', 'other', 'refund']),
   amount_cents: z.coerce.number().int().min(1).max(100_000_000),
-  method: z.enum(['cash', 'wechat', 'alipay', 'card', 'other']),
+  method: z.enum(['cash', 'wechat', 'alipay', 'xianyu', 'card', 'other']),
   note: z.string().max(500).optional(),
   paid_at: z.string().max(40).optional(),
 })
@@ -79,7 +79,7 @@ const orderSchema = z.object({
   material_fee_cents: z.coerce.number().int().min(0).max(100_000_000).optional(),
   discount_cents: z.coerce.number().int().min(0).max(100_000_000).optional(),
   paid_cents: z.coerce.number().int().min(0).max(100_000_000).optional(),
-  payment_method: z.enum(['cash', 'wechat', 'alipay', 'card', 'other']).optional(),
+  payment_method: z.enum(['cash', 'wechat', 'alipay', 'xianyu', 'card', 'other']).optional(),
   warranty_months: z.coerce.number().int().min(0).max(240).optional(),
   checklist: checklistSchema.optional(),
   precheck: checklistSchema.optional(),
@@ -410,7 +410,7 @@ export function registerOrderRoutes(router: Router): void {
   router.patch('/api/orders/:id/payment', async (ctx) => {
     const body = validate(z.object({
       paid_cents: z.coerce.number().int().min(0).max(100_000_000),
-      payment_method: z.enum(['cash', 'wechat', 'alipay', 'card', 'other']),
+      payment_method: z.enum(['cash', 'wechat', 'alipay', 'xianyu', 'card', 'other']),
     }), await readJson(ctx.req))
     sendJson(ctx.res, updatePayment(Number(ctx.params.id), body.paid_cents, body.payment_method))
   })
