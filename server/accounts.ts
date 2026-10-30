@@ -69,8 +69,8 @@ export function ensureOwnerAccount(): void {
     control.prepare(`
       INSERT INTO accounts (username, password_hash, salt, is_admin, status, data_dir, created_at)
       VALUES (?, ?, ?, 1, 'active', ?, ?)
-    `).run('小左', hash(password, salt), salt, DATA_DIR, now())
-    owner = control.prepare("SELECT id FROM accounts WHERE username = '小左'").get() as { id: number }
+    `).run('xiaozuozhuangji', hash(password, salt), salt, DATA_DIR, now())
+    owner = control.prepare("SELECT id FROM accounts WHERE username = 'xiaozuozhuangji'").get() as { id: number }
   }
   // 迁移旧版本已有的分享 token，保证升级前的链接仍然可用
   try {

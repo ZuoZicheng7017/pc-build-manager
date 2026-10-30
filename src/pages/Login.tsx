@@ -39,7 +39,7 @@ export default function Login({ onSuccess }: { onSuccess: () => void }) {
           <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-slate-900"><LockKeyhole size={16} className="text-brand-600" /> 登录账户</div>
           <div className="relative mb-2">
             <UserRound size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用户名，例如：小左" autoFocus className="h-11 pl-9" />
+            <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="用户名，例如：xiaozuozhuangji" autoFocus className="h-11 pl-9" />
           </div>
           <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="密码" className="h-11" />
           {error && <p className="mt-2 text-xs text-rose-500">{error}</p>}

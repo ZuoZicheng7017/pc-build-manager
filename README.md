@@ -107,20 +107,20 @@ pnpm dev
 | `DATA_DIR` | `./data` | 数据库与上传文件目录 |
 | `BACKUP_DIR` | `./backups` | 完整备份与自动备份目录 |
 | `SEED_DEMO` | 未设置 | 设为 `1` 且员工表为空时写入一套演示数据 |
-| `APP_PASSWORD` | `Zzc010423` | 首次启动时创建主账户「小左」的初始密码；之后账户密码存在 `data/accounts.db` |
+| `APP_PASSWORD` | `Zzc010423` | 首次启动时创建主账户 `xiaozuozhuangji` 的初始密码；之后账户密码存在 `data/accounts.db` |
 | `PDF_FONT_PATH` | 自动查找 Windows 黑体/雅黑 | 报价单 PDF 中文字体路径（非 Windows 部署需指定） |
 | `FFMPEG_PATH` | 使用项目内置 ffmpeg | 自定义 ffmpeg 可执行文件（可选） |
 
 首次启动后登录：
 
-- 用户名：`小左`
+- 用户名：`xiaozuozhuangji`
 - 初始密码：`.env` 里的 `APP_PASSWORD`（默认 `Zzc010423`）
 - 登录后可在「设置 → 账户管理」创建子账户；每个子账户从空库开始
 
 忘记密码可在项目目录执行：
 
 ```bash
-pnpm reset-password 小左 新密码
+pnpm reset-password xiaozuozhuangji 新密码
 ```
 
 > 每个账户的数据、照片、备份和分享链接完全独立。客户分享页不需要登录，但只能看到对应账户的工单。
@@ -147,7 +147,7 @@ powershell -ExecutionPolicy Bypass -File "D:\VibeCoding\deepseek-learn\PC-System
 http://电脑局域网IP:8787
 ```
 
-例如电脑局域网 IP 是 `192.168.x.x`，手机打开 `http://192.168.x.x:8787`，输入用户名「小左」和主账户密码。
+例如电脑局域网 IP 是 `192.168.x.x`，手机打开 `http://192.168.x.x:8787`，输入用户名 `xiaozuozhuangji` 和主账户密码。
 
 防火墙脚本只放行本网段（`LocalSubnet`）的 8787 端口；如果路由器开启了“AP 隔离/访客网络隔离”，手机仍然无法访问，需要在路由器里关闭隔离。
 
