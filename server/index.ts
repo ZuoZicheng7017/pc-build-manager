@@ -15,7 +15,11 @@ import { registerSettingsRoutes } from './routes/settings'
 import { registerServiceRoutes } from './routes/services'
 import { registerReportRoutes } from './routes/reports'
 import { startAutoBackupLoop } from './backup'
-import { authEnabled, authStatus, checkPassword, clearSession, isAuthenticated, setSession } from './auth'
+import {
+  clearSessionCookie, createAccount, createSession, ensureOwnerAccount, getAccount, listAccounts,
+  logout, sessionAccount, setAccountPassword, setAccountStatus, setSessionCookie, tenantFor, verifyPassword,
+} from './accounts'
+import { runWithTenant } from './context'
 import { resolveUpload } from './helpers'
 
 const PORT = Number(process.env.PORT || 8787)
@@ -23,23 +27,65 @@ const HOST = process.env.HOST || '127.0.0.1'
 const startedAt = Date.now()
 const distDir = path.join(process.cwd(), 'dist')
 
+ensureOwnerAccount()
 const router = new Router()
 router.get('/api/health', (ctx) => {
   sendJson(ctx.res, { ok: true, version: '1.2.0', uptime: Math.floor((Date.now() - startedAt) / 1000), time: new Date().toISOString() })
 })
-router.get('/api/auth/status', (ctx) => authStatus(ctx.req, ctx.res))
+router.get('/api/auth/status', (ctx) => {
+  const account = sessionAccount(ctx.req)
+  sendJson(ctx.res, { enabled: true, authenticated: Boolean(account), account: account ?? null })
+})
 router.post('/api/auth/login', async (ctx) => {
-  const body = await readJson<{ password?: string }>(ctx.req)
-  if (!checkPassword(String(body.password ?? ''))) {
-    sendJson(ctx.res, { error: '密码不正确' }, 401)
+  const body = await readJson<{ username?: string; password?: string }>(ctx.req)
+  const account = verifyPassword(String(body.username ?? ''), String(body.password ?? ''))
+  if (!account) {
+    sendJson(ctx.res, { error: '用户名或密码不正确' }, 401)
     return
   }
-  setSession(ctx.res)
-  sendJson(ctx.res, { ok: true })
+  setSessionCookie(ctx.res, createSession(account.id))
+  sendJson(ctx.res, { ok: true, account })
 })
 router.post('/api/auth/logout', (ctx) => {
-  clearSession(ctx.res)
+  logout(ctx.req)
+  clearSessionCookie(ctx.res)
   sendJson(ctx.res, { ok: true })
+})
+router.get('/api/accounts', (ctx) => {
+  const account = sessionAccount(ctx.req)
+  if (!account?.is_admin) { sendJson(ctx.res, { error: '只有主账户可以管理账户' }, 403); return }
+  sendJson(ctx.res, listAccounts())
+})
+router.post('/api/accounts', async (ctx) => {
+  const current = sessionAccount(ctx.req)
+  if (!current?.is_admin) { sendJson(ctx.res, { error: '只有主账户可以创建账户' }, 403); return }
+  const body = await readJson<{ username?: string; password?: string }>(ctx.req)
+  try {
+    const account = createAccount(String(body.username ?? ''), String(body.password ?? ''))
+    sendJson(ctx.res, account, 201)
+  } catch (err) {
+    sendJson(ctx.res, { error: err instanceof Error ? err.message : '创建失败' }, 422)
+  }
+})
+router.patch('/api/accounts/:id/password', async (ctx) => {
+  const current = sessionAccount(ctx.req)
+  if (!current?.is_admin) { sendJson(ctx.res, { error: '只有主账户可以重置密码' }, 403); return }
+  const body = await readJson<{ password?: string }>(ctx.req)
+  try {
+    setAccountPassword(Number(ctx.params.id), String(body.password ?? ''))
+    sendJson(ctx.res, { ok: true })
+  } catch (err) {
+    sendJson(ctx.res, { error: err instanceof Error ? err.message : '重置失败' }, 422)
+  }
+})
+router.patch('/api/accounts/:id/status', async (ctx) => {
+  const current = sessionAccount(ctx.req)
+  if (!current?.is_admin) { sendJson(ctx.res, { error: '只有主账户可以停用账户' }, 403); return }
+  const body = await readJson<{ status?: string }>(ctx.req)
+  if (body.status !== 'active' && body.status !== 'inactive') { sendJson(ctx.res, { error: '无效状态' }, 422); return }
+  if (Number(ctx.params.id) === current.id) { sendJson(ctx.res, { error: '不能停用自己' }, 422); return }
+  setAccountStatus(Number(ctx.params.id), body.status)
+  sendJson(ctx.res, getAccount(Number(ctx.params.id)))
 })
 registerDashboardRoutes(router)
 registerOrderRoutes(router)
@@ -205,11 +251,9 @@ const server = http.createServer(async (req, res) => {
       return
     }
 
-    if (authEnabled() && pathname.startsWith('/api/')
-      && !pathname.startsWith('/api/auth/')
-      && !pathname.startsWith('/api/share/')
-      && pathname !== '/api/health'
-      && !isAuthenticated(req)) {
+    const account = sessionAccount(req)
+    const publicApi = pathname.startsWith('/api/auth/') || pathname === '/api/health' || pathname.startsWith('/api/share/')
+    if (pathname.startsWith('/api/') && !publicApi && !account) {
       sendJson(res, { error: '请先登录', authRequired: true }, 401)
       return
     }
@@ -217,7 +261,11 @@ const server = http.createServer(async (req, res) => {
     const matched = router.match(req.method || 'GET', pathname)
     if (matched) {
       const ctx: Ctx = { req, res, url, params: matched.params }
-      await matched.handler(ctx)
+      if (account) {
+        await runWithTenant(tenantFor(account), () => matched.handler(ctx))
+      } else {
+        await matched.handler(ctx)
+      }
       return
     }
 
@@ -249,8 +297,7 @@ server.listen(PORT, HOST, () => {
       .filter((item): item is os.NetworkInterfaceInfo => Boolean(item) && item!.family === 'IPv4' && !item!.internal)
       .map((item) => item.address)
     for (const address of addresses) console.log(`  局域网访问    →  http://${address}:${PORT}`)
-    if (authEnabled()) console.log('  访问密码      →  已启用（APP_PASSWORD）')
-    else console.log('  访问密码      →  未设置，仅建议可信网络使用')
+    console.log('  账户登录      →  已启用（每账户独立数据）')
   }
   console.log(`  数据目录      →  ${process.env.DATA_DIR || path.join(process.cwd(), 'data')}`)
   if (fs.existsSync(distDir)) console.log(`  前端静态资源  →  ${distDir}\n`)

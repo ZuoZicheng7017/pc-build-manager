@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite'
 import fs from 'node:fs'
 import path from 'node:path'
 import { calcOrderTotal, DEFAULT_CHECKLIST, type ChecklistItem } from '../shared/types'
+import { currentTenant } from './context'
 
 export const DATA_DIR = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
@@ -11,7 +12,45 @@ const DB_FILE = path.join(DATA_DIR, 'app.db')
 
 fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 
-export const db = new DatabaseSync(DB_FILE)
+const defaultDb = new DatabaseSync(DB_FILE)
+
+/**
+ * 所有业务代码仍然使用 db.prepare / db.exec；
+ * 请求进入账户上下文后自动路由到该账户独立的 SQLite 文件。
+ */
+export const db = new Proxy(defaultDb, {
+  get(target, prop) {
+    const conn = currentTenant()?.db ?? target
+    const value = Reflect.get(conn, prop, conn)
+    return typeof value === 'function' ? value.bind(conn) : value
+  },
+}) as DatabaseSync
+
+export function getDefaultDb(): DatabaseSync {
+  return defaultDb
+}
+
+export function createAccountDatabase(file: string): DatabaseSync {
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  const conn = new DatabaseSync(file)
+  conn.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA foreign_keys = ON;
+    PRAGMA busy_timeout = 5000;
+  `)
+  const hasSchema = (conn.prepare("SELECT COUNT(*) AS c FROM sqlite_master WHERE type = 'table'").get() as { c: number }).c > 0
+  if (!hasSchema) {
+    const objects = defaultDb.prepare(`
+      SELECT sql FROM sqlite_master
+      WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'
+      ORDER BY CASE type WHEN 'table' THEN 1 WHEN 'index' THEN 2 WHEN 'view' THEN 3 ELSE 4 END
+    `).all() as { sql: string }[]
+    for (const object of objects) conn.exec(object.sql)
+  }
+  ensureDefaultSettings(conn)
+  return conn
+}
+
 db.exec(`
   PRAGMA journal_mode = WAL;
   PRAGMA foreign_keys = ON;
@@ -362,8 +401,8 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   ui_mode: 'full',
 }
 
-function ensureDefaultSettings(): void {
-  const stmt = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)')
+function ensureDefaultSettings(conn: DatabaseSync = db): void {
+  const stmt = conn.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)')
   for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) stmt.run(key, value)
 }
 

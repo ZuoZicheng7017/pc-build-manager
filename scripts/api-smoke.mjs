@@ -19,7 +19,7 @@ if (authStatus.enabled) {
   const login = await fetch(BASE + '/api/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password }),
+    body: JSON.stringify({ username: process.env.APP_USERNAME || '小左', password }),
   })
   assert.equal(login.status, 200, '测试登录失败')
   COOKIE = (login.headers.get('set-cookie') || '').split(';')[0]

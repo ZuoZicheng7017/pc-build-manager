@@ -4,6 +4,7 @@ import { createReadStream } from 'node:fs'
 import { z } from 'zod'
 import { DATA_DIR, UPLOAD_DIR, db, getSettingsMap, nowIso, writeSetting } from '../db'
 import { readJson, sendJson, validate, type Ctx, type Router } from '../http'
+import { currentTenant } from '../context'
 import { BACKUP_DIR, createBackupZip, runAutoBackup } from '../backup'
 import type { Settings } from '../../shared/types'
 
@@ -111,17 +112,20 @@ function dirSize(dir: string): number {
 
 function systemInfo(ctx: Ctx): void {
   const count = (sql: string) => (db.prepare(sql).get() as { c: number }).c
+  const tenant = currentTenant()
+  const dataDir = tenant?.dataDir ?? DATA_DIR
+  const dbFile = path.join(dataDir, 'app.db')
   sendJson(ctx.res, {
     version: '1.2.0',
     node: process.version,
     platform: process.platform,
-    data_dir: DATA_DIR,
-    backup_dir: BACKUP_DIR,
+    data_dir: dataDir,
+    backup_dir: tenant?.backupDir ?? BACKUP_DIR,
     last_auto_backup_at: getSettingsMap().last_auto_backup_at || '',
-    db_size: fs.existsSync(path.join(DATA_DIR, 'app.db'))
-      ? fs.statSync(path.join(DATA_DIR, 'app.db')).size + (fs.existsSync(path.join(DATA_DIR, 'app.db-wal')) ? fs.statSync(path.join(DATA_DIR, 'app.db-wal')).size : 0)
+    db_size: fs.existsSync(dbFile)
+      ? fs.statSync(dbFile).size + (fs.existsSync(`${dbFile}-wal`) ? fs.statSync(`${dbFile}-wal`).size : 0)
       : 0,
-    uploads_size: dirSize(UPLOAD_DIR),
+    uploads_size: dirSize(tenant?.uploadDir ?? UPLOAD_DIR),
     counts: {
       customers: count('SELECT COUNT(*) AS c FROM active_customers'),
       orders: count('SELECT COUNT(*) AS c FROM active_orders'),

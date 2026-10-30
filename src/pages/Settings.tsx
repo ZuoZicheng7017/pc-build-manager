@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Database, Download, FileJson, HardDrive, Info, LayoutDashboard, RefreshCw, Save, ShieldCheck, Store } from 'lucide-react'
-import type { Settings } from '../../shared/types'
+import { Database, Download, FileJson, HardDrive, Info, LayoutDashboard, RefreshCw, Save, ShieldCheck, Store, UserPlus, Users } from 'lucide-react'
+import type { Account, Settings } from '../../shared/types'
 import { api, errorMessage, type SystemInfo } from '../lib/api'
 import { useApi, useDocTitle } from '../lib/hooks'
 import { formatBytes, moneyInput, parseMoney } from '../lib/format'
@@ -13,12 +13,48 @@ export default function SettingsPage() {
   const { data: settings, loading, error, reload } = useApi<Settings>(() => api.settings.get(), [])
   const { data: info, loading: infoLoading, reload: reloadInfo } = useApi<SystemInfo>(() => api.settings.systemInfo(), [])
   const { data: auth } = useApi(() => api.auth.status(), [])
+  const { data: accounts, reload: reloadAccounts } = useApi<Account[]>(
+    () => (auth?.account?.is_admin ? api.accounts.list() : Promise.resolve([])),
+    [auth?.account?.is_admin],
+  )
+  const [newUsername, setNewUsername] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [accountSaving, setAccountSaving] = useState(false)
   const [form, setForm] = useState({
     shop_name: '', shop_phone: '', shop_address: '', travel: '', labor: '', warranty: '',
     auto_backup_enabled: true, auto_backup_retention: '7', ui_mode: 'full' as 'full' | 'service',
   })
   const [saving, setSaving] = useState(false)
   const [backingUp, setBackingUp] = useState(false)
+
+  const addAccount = async () => {
+    if (!newUsername.trim() || newPassword.length < 6) {
+      toast('用户名至少 2 位，密码至少 6 位', 'error')
+      return
+    }
+    setAccountSaving(true)
+    try {
+      await api.accounts.create(newUsername.trim(), newPassword)
+      toast('账户已创建，可用新账户登录')
+      setNewUsername('')
+      setNewPassword('')
+      reloadAccounts()
+    } catch (err) {
+      toast(errorMessage(err), 'error')
+    } finally {
+      setAccountSaving(false)
+    }
+  }
+
+  const toggleAccount = async (account: Account) => {
+    try {
+      await api.accounts.setStatus(account.id, account.status === 'active' ? 'inactive' : 'active')
+      toast(account.status === 'active' ? '账户已停用' : '账户已启用')
+      reloadAccounts()
+    } catch (err) {
+      toast(errorMessage(err), 'error')
+    }
+  }
 
   useEffect(() => {
     if (!settings) return
@@ -189,6 +225,49 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {auth?.account?.is_admin && (
+            <section className="card p-4 sm:p-5">
+              <div className="mb-4 flex items-center gap-2">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><Users size={16} /></span>
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900">账户管理</h2>
+                  <p className="text-[11px] text-slate-400">每个账户独立客户、工单、照片和备份，互不可见</p>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                {accounts?.map((account) => (
+                  <div key={account.id} className="flex items-center gap-2.5 rounded-xl border border-slate-100 px-3 py-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600">{account.username.slice(0, 1)}</span>
+                    <span className="min-w-0 flex-1 text-xs font-medium text-slate-700">{account.username}</span>
+                    {account.is_admin === 1 && <span className="rounded bg-brand-50 px-1.5 py-0.5 text-[9px] text-brand-600">主账户</span>}
+                    <span className={`rounded-full px-2 py-0.5 text-[9px] ${account.status === 'active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>{account.status === 'active' ? '启用' : '停用'}</span>
+                    <button type="button" onClick={async () => {
+                      const password = window.prompt(`重置「${account.username}」的密码（至少 6 位）`)
+                      if (!password) return
+                      try {
+                        await api.accounts.resetPassword(account.id, password)
+                        toast('密码已重置，该账户需要重新登录')
+                      } catch (err) {
+                        toast(errorMessage(err), 'error')
+                      }
+                    }} className="text-[10px] text-slate-400 hover:text-brand-600">改密</button>
+                    {account.id !== auth.account?.id && (
+                      <button type="button" onClick={() => toggleAccount(account)} className="text-[10px] text-slate-400 hover:text-rose-500">{account.status === 'active' ? '停用' : '启用'}</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-2 border-t border-slate-100 pt-4 sm:grid-cols-[1fr_1fr_auto]">
+                <Field label="新账户用户名"><Input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="例如：小李" /></Field>
+                <Field label="初始密码"><Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="至少 6 位" /></Field>
+                <div className="flex items-end"><Button onClick={addAccount} loading={accountSaving} className="w-full sm:w-auto"><UserPlus size={14} /> 创建账户</Button></div>
+              </div>
+              <p className="mt-2 text-[10px] text-slate-400">新账户从空库开始，只能看到自己的数据；旧账户数据不会共享。</p>
+            </section>
+          )}
+
           <section className="card p-4 sm:p-5">
             <div className="mb-3 flex items-center gap-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-50 text-violet-600"><ShieldCheck size={16} /></span>
@@ -200,15 +279,13 @@ export default function SettingsPage() {
             <p className="text-xs leading-relaxed text-slate-500">
               系统默认仅监听 <code className="rounded bg-slate-100 px-1 py-0.5">127.0.0.1</code>，局域网内其他设备无法访问。
               如果需要在手机上使用，可将启动参数 <code className="rounded bg-slate-100 px-1 py-0.5">HOST</code> 设为
-              <code className="rounded bg-slate-100 px-1 py-0.5">0.0.0.0</code>，并设置访问密码。
+              <code className="rounded bg-slate-100 px-1 py-0.5">0.0.0.0</code>，并使用账户登录。
             </p>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 px-3.5 py-3">
               <p className="text-[11px] text-slate-500">
-                {auth?.enabled ? '访问密码已开启，API 需要登录后才能访问。' : '当前未设置访问密码（APP_PASSWORD），仅建议本机使用。'}
+                当前登录：{auth?.account?.username || '未登录'}。每个账户的数据完全独立。
               </p>
-              {auth?.enabled && (
-                <button type="button" onClick={async () => { await api.auth.logout(); window.location.reload() }} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100">退出登录</button>
-              )}
+              <button type="button" onClick={async () => { await api.auth.logout(); window.location.reload() }} className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-600 hover:bg-slate-100">退出登录</button>
             </div>
           </section>
         </div>
@@ -250,7 +327,7 @@ export default function SettingsPage() {
                 <span key={tech} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-500">{tech}</span>
               ))}
             </div>
-            <p className="mt-3 text-[10px] leading-relaxed text-slate-400">所有代码与数据均在本地，无需登录第三方服务。后续版本将加入访问密码、保修提醒与在线分享。</p>
+            <p className="mt-3 text-[10px] leading-relaxed text-slate-400">所有代码与数据均在本地，无需登录第三方服务。每个账户使用独立数据库、照片目录与备份。</p>
           </section>
         </aside>
       </div>

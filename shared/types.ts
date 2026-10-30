@@ -24,6 +24,14 @@ export type MediaCategory = 'before' | 'during' | 'after' | 'serial' | 'signatur
 export type TemplatePurpose = 'office' | 'gaming' | 'design' | 'video' | 'stream' | 'home' | 'other'
 export type TemplateLevel = 'entry' | 'mainstream' | 'high' | 'flagship'
 
+export interface Account {
+  id: number
+  username: string
+  is_admin: number
+  status: string
+  created_at: string
+}
+
 export interface Staff {
   id: number
   name: string

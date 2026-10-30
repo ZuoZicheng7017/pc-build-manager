@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { UPLOAD_DIR } from './db'
+import { currentTenant } from './context'
 import { HttpError } from './http'
 
 export function resolveUpload(storedName: string): string {
@@ -22,7 +23,12 @@ export function removeUpload(storedName: string): void {
 
 export function ensureMonthDir(): { month: string; dir: string } {
   const d = new Date()
-  const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  const tenant = currentTenant()
+  const localMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  const accountPrefix = tenant && path.resolve(tenant.uploadDir) !== path.resolve(UPLOAD_DIR)
+    ? `accounts/${tenant.accountId}`
+    : ''
+  const month = accountPrefix ? `${accountPrefix}/${localMonth}` : localMonth
   const dir = path.join(UPLOAD_DIR, month)
   fs.mkdirSync(dir, { recursive: true })
   return { month, dir }

@@ -26,6 +26,8 @@ import { MEDIA_CATEGORIES, ORDER_STATUSES, type ChecklistItem, type MediaCategor
 import { getSettingsMap } from '../db'
 import { buildQuotePdf } from '../pdf'
 import { hasFfmpeg, transcodeVideo } from '../video'
+import { registerShare, unregisterShare, shareAccount, getAccount, tenantFor } from '../accounts'
+import { currentTenant, runWithTenant } from '../context'
 import { ZipArchive } from 'archiver'
 
 const itemSchema = z.object({
@@ -294,6 +296,8 @@ function createShare(ctx: Ctx): void {
   if (!order) throw new HttpError(404, '工单不存在')
   const token = order.share_token || randomUUID()
   if (!order.share_token) db.prepare('UPDATE orders SET share_token = ?, updated_at = ? WHERE id = ?').run(token, nowIso(), orderId)
+  const tenant = currentTenant()
+  if (tenant) registerShare(token, tenant.accountId, orderId)
   sendJson(ctx.res, { token })
 }
 
@@ -301,15 +305,23 @@ function revokeShare(ctx: Ctx): void {
   const orderId = Number(ctx.params.id)
   const order = db.prepare('SELECT id FROM active_orders WHERE id = ?').get(orderId)
   if (!order) throw new HttpError(404, '工单不存在')
+  const old = db.prepare('SELECT share_token FROM orders WHERE id = ?').get(orderId) as { share_token: string | null } | undefined
   db.prepare('UPDATE orders SET share_token = NULL, updated_at = ? WHERE id = ?').run(nowIso(), orderId)
+  if (old?.share_token) unregisterShare(old.share_token)
   sendNoContent(ctx.res)
 }
 
 function publicShare(ctx: Ctx): void {
   const token = ctx.params.token
-  const row = db.prepare('SELECT id FROM active_orders WHERE share_token = ?').get(token) as { id: number } | undefined
-  if (!row) throw new HttpError(404, '分享链接不存在或已失效')
-  const detail = getOrderDetail(row.id)
+  const mapped = shareAccount(token)
+  if (!mapped) throw new HttpError(404, '分享链接不存在或已失效')
+  const account = getAccount(mapped.accountId)
+  if (!account || account.status !== 'active') throw new HttpError(404, '分享链接不存在或已失效')
+  runWithTenant(tenantFor(account), () => renderPublicShare(ctx, mapped.orderId))
+}
+
+function renderPublicShare(ctx: Ctx, orderId: number): void {
+  const detail = getOrderDetail(orderId)
   const settings = getSettingsMap()
   const data: SharedOrder = {
     shop: { name: settings.shop_name, phone: settings.shop_phone, address: settings.shop_address },

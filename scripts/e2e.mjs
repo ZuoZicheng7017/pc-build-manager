@@ -32,7 +32,7 @@ function envPassword() {
 
 const auth = await (await page.request.get(`${BASE}/api/auth/status`)).json()
 if (auth.enabled) {
-  const response = await page.request.post(`${BASE}/api/auth/login`, { data: { password: envPassword() } })
+  const response = await page.request.post(`${BASE}/api/auth/login`, { data: { username: process.env.APP_USERNAME || '小左', password: envPassword() } })
   assert.equal(response.status(), 200, 'E2E 登录失败')
 }
 

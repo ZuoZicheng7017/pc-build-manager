@@ -1,4 +1,5 @@
 import type {
+  Account,
   BuildTemplate,
   Customer,
   CustomerAddress,
@@ -160,9 +161,16 @@ export interface SystemInfo {
 
 export const api = {
   auth: {
-    status: () => request<{ enabled: boolean; authenticated: boolean }>('/auth/status'),
-    login: (password: string) => request<{ ok: boolean }>('/auth/login', json('POST', { password })),
+    status: () => request<{ enabled: boolean; authenticated: boolean; account: Account | null }>('/auth/status'),
+    login: (username: string, password: string) => request<{ ok: boolean; account: Account }>('/auth/login', json('POST', { username, password })),
     logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
+  },
+
+  accounts: {
+    list: () => request<Account[]>('/accounts'),
+    create: (username: string, password: string) => request<Account>('/accounts', json('POST', { username, password })),
+    resetPassword: (id: number, password: string) => request<{ ok: boolean }>(`/accounts/${id}/password`, json('PATCH', { password })),
+    setStatus: (id: number, status: 'active' | 'inactive') => request<Account>(`/accounts/${id}/status`, json('PATCH', { status })),
   },
 
   dashboard: () => request<DashboardData>('/dashboard'),
