@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Check, FileDown, Printer } from 'lucide-react'
+import { ArrowLeft, Check, FileDown, FileText, Printer } from 'lucide-react'
 import type { OrderDetail, Settings } from '../../shared/types'
 import { SERVICE_TYPE_LABELS, PAYMENT_METHOD_LABELS, CUSTOMER_LEVEL_LABELS } from '../../shared/types'
 import { api } from '../lib/api'
@@ -33,6 +33,7 @@ export default function OrderPrint() {
         <div className="flex gap-2">
           <Link to={`/orders/${order.id}/edit`}><Button variant="secondary" size="sm">编辑工单</Button></Link>
           <a href={`/api/orders/${order.id}/quote.pdf`} target="_blank" rel="noreferrer"><Button variant="secondary" size="sm"><FileDown size={14} /> 报价单 PDF</Button></a>
+          <a href={`/api/orders/${order.id}/print.docx`}><Button variant="secondary" size="sm"><FileText size={14} /> Word 验收单</Button></a>
           <Button size="sm" onClick={() => window.print()}><Printer size={14} /> 打印 / 另存 PDF</Button>
         </div>
       </div>

@@ -25,6 +25,7 @@ import {
 import { MEDIA_CATEGORIES, ORDER_STATUSES, type ChecklistItem, type MediaCategory, type OrderStatus, type PaymentKind, type SharedOrder } from '../../shared/types'
 import { getSettingsMap } from '../db'
 import { buildQuotePdf } from '../pdf'
+import { buildAcceptanceDocx } from '../word'
 import { hasFfmpeg, transcodeVideo } from '../video'
 import { registerShare, unregisterShare, shareAccount, getAccount, tenantFor } from '../accounts'
 import { currentTenant, runWithTenant } from '../context'
@@ -277,6 +278,19 @@ function downloadMedia(ctx: Ctx): void {
   void archive.finalize()
 }
 
+async function acceptanceDocx(ctx: Ctx): Promise<void> {
+  const order = getOrderDetail(Number(ctx.params.id))
+  const settings = getSettingsMap()
+  const buffer = await buildAcceptanceDocx(order, settings as unknown as Parameters<typeof buildAcceptanceDocx>[1])
+  ctx.res.writeHead(200, {
+    'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'Content-Disposition': `attachment; filename="${order.order_no}-acceptance.docx"`,
+    'Content-Length': buffer.length,
+    'Cache-Control': 'no-store',
+  })
+  ctx.res.end(buffer)
+}
+
 async function quotePdf(ctx: Ctx): Promise<void> {
   const order = getOrderDetail(Number(ctx.params.id))
   const settings = getSettingsMap()
@@ -462,6 +476,7 @@ export function registerOrderRoutes(router: Router): void {
   router.post('/api/orders/:id/media', uploadMedia)
   router.get('/api/orders/:id/media.zip', downloadMedia)
   router.get('/api/orders/:id/quote.pdf', quotePdf)
+  router.get('/api/orders/:id/print.docx', acceptanceDocx)
   router.post('/api/orders/:id/share', createShare)
   router.delete('/api/orders/:id/share', revokeShare)
   router.get('/api/share/:token', publicShare)
