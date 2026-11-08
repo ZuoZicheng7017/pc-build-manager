@@ -18,6 +18,12 @@ function when(value: string | null | undefined): string {
   return value ? value.slice(0, 16).replace('T', ' ') : '—'
 }
 
+function nowLocal(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function run(text: string, opts: { bold?: boolean; size?: number; color?: string } = {}): TextRun {
   return new TextRun({ text, bold: opts.bold, size: opts.size ?? 21, color: opts.color ?? BLACK, font: FONT })
 }
@@ -66,7 +72,7 @@ export async function buildAcceptanceDocx(order: OrderDetail, settings: Settings
   }))
   children.push(p(`电话：${settings.shop_phone || '—'}    地址：${settings.shop_address || '—'}`, { size: 19, after: 160 }))
   children.push(p('装机服务验收单', { bold: true, size: 38, align: AlignmentType.CENTER, after: 100 }))
-  children.push(p(`单号：${order.order_no}    打印日期：${when(new Date().toISOString())}`, { size: 19, align: AlignmentType.RIGHT, after: 160 }))
+  children.push(p(`单号：${order.order_no}    打印日期：${nowLocal()}`, { size: 19, align: AlignmentType.RIGHT, after: 160 }))
 
   const meta: string[][] = [
     ['客户', order.customer_name + (order.customer ? `（${CUSTOMER_LEVEL_LABELS[order.customer.level]}）` : ''), '联系电话', order.contact_phone || '—'],
@@ -146,12 +152,14 @@ export async function buildAcceptanceDocx(order: OrderDetail, settings: Settings
   }
 
   children.push(p('售后说明', { bold: true, size: 24, before: 140, after: 50 }))
+  children.push(p(`· 装机服务质保 ${order.warranty_months} 个月；人为损坏、超频、进水不在质保范围。`, { size: 18 }))
   children.push(p(
-    `· 装机服务质保 ${order.warranty_months} 个月；人为损坏、超频、进水不在质保范围。\n`
-    + (order.parts_source === 'customer' ? '· 配件由客户自备，仅收取服务费；兼容性、DOA 与数据风险由客户承担。\n' : '· 配件质保按厂商政策执行。\n')
-    + '· 请当场核对配置、外观与运行状态，妥善保管本验收单。',
+    order.parts_source === 'customer'
+      ? '· 配件由客户自备，仅收取服务费；兼容性、DOA 与数据风险由客户承担。'
+      : '· 配件质保按厂商政策执行。',
     { size: 18 },
   ))
+  children.push(p('· 请当场核对配置、外观与运行状态，妥善保管本验收单。', { size: 18 }))
 
   children.push(p('客户签字：____________________          装机师签字：____________________', { size: 21, before: 260 }))
   children.push(p(`日期：${when(order.completed_at || order.appointment_at)}`, { size: 18 }))
