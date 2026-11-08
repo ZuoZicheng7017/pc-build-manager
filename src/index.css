@@ -97,10 +97,13 @@
 @media print {
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 12mm 13mm;
   }
   html, body {
     background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .no-print {
     display: none !important;
@@ -112,8 +115,71 @@
     padding: 0 !important;
     width: 100% !important;
     max-width: none !important;
+    color: #000 !important;
+    font-size: 10.5pt;
+    line-height: 1.45;
+  }
+  /* 打印时取消浅灰字，全部改为纯黑，避免针式/低精度打印发虚 */
+  .print-sheet * {
+    color: #000 !important;
+  }
+  /* 不依赖“背景图形”也能看清：Logo 改为黑框黑字 */
+  .print-sheet .bg-slate-900 {
+    background: #fff !important;
+    color: #000 !important;
+    border: 1.5px solid #000 !important;
+  }
+  .print-sheet .bg-slate-900 * {
+    color: #000 !important;
+  }
+  .print-sheet h1 {
+    font-size: 16pt !important;
+    font-weight: 800 !important;
+  }
+  .print-sheet h2 {
+    font-size: 17pt !important;
+    font-weight: 800 !important;
+  }
+  .print-sheet h3 {
+    font-size: 11.5pt !important;
+    font-weight: 800 !important;
+  }
+  .print-sheet [class*="text-[9px]"] { font-size: 8pt !important; }
+  .print-sheet [class*="text-[10px]"] { font-size: 9pt !important; }
+  .print-sheet [class*="text-[11px]"] { font-size: 9.5pt !important; }
+  .print-sheet [class*="text-[12px]"] { font-size: 10pt !important; }
+  .print-sheet [class*="text-xs"] { font-size: 10pt !important; }
+  .print-sheet [class*="text-sm"] { font-size: 10.5pt !important; }
+  .print-sheet [class*="bg-slate-50"] {
+    background: #f1f1f1 !important;
+  }
+  .print-sheet [class*="border-slate-100"],
+  .print-sheet [class*="border-slate-200"],
+  .print-sheet [class*="border-slate-300"],
+  .print-sheet [class*="border-slate-400"] {
+    border-color: #555 !important;
+  }
+  .print-sheet table {
+    border: 1px solid #333 !important;
+  }
+  .print-sheet th,
+  .print-sheet td {
+    border: 1px solid #555 !important;
+    padding: 4px 5px !important;
+  }
+  .print-sheet th {
+    background: #e5e5e5 !important;
+    font-weight: 700 !important;
+  }
+  .print-sheet img {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .print-break {
+    break-inside: avoid;
+  }
+  .print-sheet tr,
+  .print-sheet section {
     break-inside: avoid;
   }
 }

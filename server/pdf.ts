@@ -50,13 +50,13 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
   const M = 46
   const W = 595.28 - M * 2
   const dark = '#0f172a'
-  const muted = '#64748b'
-  const line = '#e2e8f0'
+  const muted = '#334155'
+  const line = '#94a3b8'
   let y = 42
 
   doc.font(font)
   doc.fontSize(17).fillColor(dark).text(settings.shop_name || '装机管家', M, y, { width: W - 200 })
-  doc.fontSize(8.5).fillColor(muted).text(settings.shop_phone || '', M, y + 24, { width: 180 })
+  doc.fontSize(9).fillColor(muted).text(settings.shop_phone || '', M, y + 24, { width: 180 })
   doc.text(settings.shop_address || '', M, y + 36, { width: 220 })
   doc.fontSize(9).fillColor(muted).text('报价单 / QUOTATION', M + W - 150, y + 2, { width: 150, align: 'right' })
   doc.fontSize(7.5).text(`单号 ${order.order_no}`, M + W - 170, y + 18, { width: 170, align: 'right' })
@@ -81,7 +81,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
     const left = meta[i]
     const right = meta[i + 1]
     if (!left) continue
-    doc.fontSize(8.5).fillColor(muted).text(left[0] ?? '', M, y, { width: 55 })
+    doc.fontSize(9).fillColor(muted).text(left[0] ?? '', M, y, { width: 55 })
     doc.fillColor(dark).text(left[1] ?? '—', M + 56, y, { width: colW - 64 })
     if (right) {
       doc.fillColor(muted).text(right[0] ?? '', M + colW, y, { width: 55 })
@@ -89,7 +89,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
     }
     y += 16
   }
-  doc.fontSize(8.5).fillColor(muted).text('上门地址', M, y, { width: 55 })
+  doc.fontSize(9).fillColor(muted).text('上门地址', M, y, { width: 55 })
   doc.fillColor(dark).text(order.address, M + 56, y, { width: W - 56 })
   y += 24
 
@@ -107,7 +107,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
     y += 16
     doc.rect(M, y, W, 22).fill(dark)
     let x = M
-    doc.fontSize(8).fillColor('#ffffff')
+    doc.fontSize(9).fillColor('#ffffff')
     cols.forEach((col) => {
       doc.text(col.label, x + 5, y + 7, { width: col.width - 10, align: col.align ?? 'left' })
       x += col.width
@@ -119,7 +119,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
     ensure(24)
     if (index % 2 === 1) doc.rect(M, y, W, 21).fill('#f8fafc')
     let x = M
-    doc.fontSize(8).fillColor(dark)
+    doc.fontSize(9).fillColor(dark)
     values.forEach((value, i) => {
       doc.text(value, x + 5, y + 6, { width: cols[i].width - 10, align: cols[i].align ?? 'left', ellipsis: true, lineBreak: false })
       x += cols[i].width
@@ -167,7 +167,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
     ...(order.material_fee_cents > 0 ? [['材料费', yuan(order.material_fee_cents)] as [string, string]] : []),
     ...(order.discount_cents > 0 ? [['优惠', `-${yuan(order.discount_cents)}`] as [string, string]] : []),
   ]
-  doc.fontSize(8.5)
+  doc.fontSize(9)
   rows.forEach(([label, value]) => {
     doc.fillColor(muted).text(label, boxX, y, { width: 120 })
     doc.fillColor(dark).text(value, boxX + 120, y, { width: 118, align: 'right' })
@@ -180,13 +180,13 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
   y += 28
 
   if (order.paid_cents > 0) {
-    doc.fontSize(8.5).fillColor(muted).text(`已收 ${yuan(order.paid_cents)} · 待收 ${yuan(Math.max(0, order.total_cents - order.paid_cents))} · ${PAYMENT_METHOD_LABELS[order.payment_method] ?? ''}`, M, y, { width: W, align: 'right' })
+    doc.fontSize(9).fillColor(muted).text(`已收 ${yuan(order.paid_cents)} · 待收 ${yuan(Math.max(0, order.total_cents - order.paid_cents))} · ${PAYMENT_METHOD_LABELS[order.payment_method] ?? ''}`, M, y, { width: W, align: 'right' })
     y += 20
   }
 
   if (order.description) {
     ensure(50)
-    doc.fontSize(8.5).fillColor(muted).text('需求备注', M, y)
+    doc.fontSize(9).fillColor(muted).text('需求备注', M, y)
     y += 14
     doc.fillColor(dark).text(order.description, M, y, { width: W, height: 36, ellipsis: true })
     y += 42
@@ -194,7 +194,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
 
   ensure(112)
   doc.roundedRect(M, y, W, 78).fill('#f8fafc')
-  doc.fontSize(8).fillColor(muted).text(
+  doc.fontSize(9).fillColor(muted).text(
     `· 本报价按当前工单生成，服务费包含 ${order.services.length || 1} 项服务；配件由${PARTS_SOURCE_LABELS[order.parts_source]}。\n`
     + `· 整机服务质保 ${order.warranty_months} 个月；人为损坏、超频、进水不在质保范围。\n`
     + (order.parts_source === 'customer' ? '· 客户自备配件仅负责安装调试，配件兼容性、DOA 与数据风险由客户承担。\n' : '· 配件质保按厂商政策执行。\n')
@@ -205,7 +205,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
 
   const signature = order.media.find((m) => m.category === 'signature')
   ensure(80)
-  doc.fontSize(8.5).fillColor(muted).text('客户确认', M, y)
+  doc.fontSize(9).fillColor(muted).text('客户确认', M, y)
   doc.text('服务人员', M + W / 2, y)
   if (signature) {
     try {
@@ -221,7 +221,7 @@ export async function buildQuotePdf(order: OrderDetail, settings: Settings): Pro
   const range = doc.bufferedPageRange()
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(range.start + i)
-    doc.fontSize(7).fillColor('#94a3b8').text(`${settings.shop_name || '装机管家'} · ${order.order_no} · 第 ${i + 1} / ${range.count} 页`, M, 780, { width: W, align: 'center', lineBreak: false })
+    doc.fontSize(8).fillColor('#475569').text(`${settings.shop_name || '装机管家'} · ${order.order_no} · 第 ${i + 1} / ${range.count} 页`, M, 780, { width: W, align: 'center', lineBreak: false })
   }
 
   doc.end()
