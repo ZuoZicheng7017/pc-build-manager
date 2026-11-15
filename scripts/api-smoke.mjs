@@ -312,7 +312,7 @@ try {
   assert.equal(uploaded.status, 201)
   const media = await uploaded.json()
   assert.equal(media.category, 'serial')
-  const range = await fetch(BASE + media.url, { headers: { Range: 'bytes=0-99' } })
+  const range = await fetch(BASE + media.url, { headers: { Range: 'bytes=0-99', Cookie: COOKIE } })
   assert.equal(range.status, 206)
   assert.match(range.headers.get('content-range') || '', /^bytes 0-99\//)
   assert.equal((await range.arrayBuffer()).byteLength, 100)

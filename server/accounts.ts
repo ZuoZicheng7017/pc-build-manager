@@ -5,7 +5,7 @@ import path from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { DATA_DIR, UPLOAD_DIR, createAccountDatabase, getDefaultDb } from './db'
 import type { Tenant } from './context'
-import type { Account } from '../shared/types'
+import { DEFAULT_SERVICE_ITEMS, type Account } from '../shared/types'
 
 const CONTROL_DB = path.join(DATA_DIR, 'accounts.db')
 fs.mkdirSync(DATA_DIR, { recursive: true })
@@ -33,9 +33,14 @@ control.exec(`
     token TEXT PRIMARY KEY,
     account_id INTEGER NOT NULL,
     order_id INTEGER NOT NULL,
+    expires_at TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
   );
 `)
+const shareCols = control.prepare('PRAGMA table_info(shares)').all() as { name: string }[]
+if (!shareCols.some((column) => column.name === 'expires_at')) {
+  control.exec("ALTER TABLE shares ADD COLUMN expires_at TEXT NOT NULL DEFAULT ''")
+}
 
 const COOKIE = 'pc_account_session'
 const DAY = 24 * 60 * 60 * 1000
@@ -122,7 +127,61 @@ export function createAccount(username: string, password: string): Account {
   const id = Number(info.lastInsertRowid)
   const dir = path.join(DATA_DIR, 'accounts', String(id))
   control.prepare('UPDATE accounts SET data_dir = ? WHERE id = ?').run(dir, id)
+  const account = getAccount(id)!
+  initializeAccountData(account)
+  return account
+}
+
+function initializeAccountData(account: Account): void {
+  const tenant = tenantFor(account)
+  const services = tenant.db.prepare('SELECT COUNT(*) AS c FROM service_items').get() as { c: number }
+  if (services.c === 0) {
+    const insert = tenant.db.prepare(`
+      INSERT INTO service_items (name, category, price_cents, duration_minutes, description, active, sort_order, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 'active', ?, ?, ?)
+    `)
+    DEFAULT_SERVICE_ITEMS.forEach((item, index) => {
+      const at = now()
+      insert.run(item.name, item.category, item.price_cents, item.duration_minutes, item.description, (index + 1) * 10, at, at)
+    })
+  }
+  const staff = tenant.db.prepare('SELECT COUNT(*) AS c FROM staff').get() as { c: number }
+  if (staff.c === 0) {
+    tenant.db.prepare(`
+      INSERT INTO staff (name, phone, role, color, status, commission_rate, hired_at, notes, created_at)
+      VALUES (?, '', 'owner', '#4f46e5', 'active', 0, ?, '账户默认员工', ?)
+    `).run(account.username, now().slice(0, 10), now())
+  }
+}
+
+export function renameAccount(id: number, username: string): Account {
+  const name = username.trim()
+  if (name.length < 2) throw new Error('用户名至少 2 个字符')
+  const exists = getAccountByUsername(name)
+  if (exists && exists.id !== id) throw new Error('用户名已存在')
+  control.prepare('UPDATE accounts SET username = ? WHERE id = ?').run(name, id)
   return getAccount(id)!
+}
+
+export function deleteAccount(id: number): void {
+  const account = getAccount(id)
+  if (!account) throw new Error('账户不存在')
+  if (account.is_admin) throw new Error('不能删除主账户')
+  const row = accountRow(id)!
+  const dataDir = path.resolve(String(row.data_dir))
+  dbCache.get(id)?.close()
+  dbCache.delete(id)
+  control.prepare('DELETE FROM sessions WHERE account_id = ?').run(id)
+  control.prepare('DELETE FROM shares WHERE account_id = ?').run(id)
+  control.prepare('DELETE FROM accounts WHERE id = ?').run(id)
+  fs.rmSync(dataDir, { recursive: true, force: true })
+  fs.rmSync(path.join(UPLOAD_DIR, 'accounts', String(id)), { recursive: true, force: true })
+  const backupRoot = process.env.BACKUP_DIR || path.join(path.dirname(DATA_DIR), 'backups')
+  fs.rmSync(path.join(backupRoot, 'accounts', String(id)), { recursive: true, force: true })
+}
+
+export function checkpointAccounts(): void {
+  try { control.exec('PRAGMA wal_checkpoint(TRUNCATE)') } catch { /* ignore */ }
 }
 
 export function setAccountPassword(id: number, password: string): void {
@@ -198,18 +257,32 @@ export function tenantFor(account: Account): Tenant {
   }
 }
 
-export function registerShare(token: string, accountId: number, orderId: number): void {
-  control.prepare('INSERT OR REPLACE INTO shares (token, account_id, order_id, created_at) VALUES (?, ?, ?, ?)')
-    .run(token, accountId, orderId, now())
+export function registerShare(token: string, accountId: number, orderId: number, expiresAt = ''): void {
+  control.prepare('INSERT OR REPLACE INTO shares (token, account_id, order_id, expires_at, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(token, accountId, orderId, expiresAt, now())
+}
+
+export function ownerAccountId(): number {
+  const row = control.prepare('SELECT id FROM accounts WHERE is_admin = 1 ORDER BY id LIMIT 1').get() as { id: number } | undefined
+  return row?.id ?? 1
+}
+
+export function mediaAccountForPath(pathname: string): number | undefined {
+  if (!pathname.startsWith('/uploads/')) return undefined
+  const match = pathname.match(/^\/uploads\/accounts\/(\d+)\//)
+  if (match) return Number(match[1])
+  return ownerAccountId()
 }
 
 export function unregisterShare(token: string): void {
   control.prepare('DELETE FROM shares WHERE token = ?').run(token)
 }
 
-export function shareAccount(token: string): { accountId: number; orderId: number } | undefined {
-  const row = control.prepare('SELECT account_id, order_id FROM shares WHERE token = ?').get(token) as
-    | { account_id: number; order_id: number }
+export function shareAccount(token: string): { accountId: number; orderId: number; expiresAt: string } | undefined {
+  const row = control.prepare('SELECT account_id, order_id, expires_at FROM shares WHERE token = ?').get(token) as
+    | { account_id: number; order_id: number; expires_at: string }
     | undefined
-  return row ? { accountId: row.account_id, orderId: row.order_id } : undefined
+  if (!row) return undefined
+  if (row.expires_at && Date.parse(row.expires_at) <= Date.now()) return undefined
+  return { accountId: row.account_id, orderId: row.order_id, expiresAt: row.expires_at }
 }

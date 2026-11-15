@@ -9,7 +9,7 @@ import { Button, ErrorBlock, Field, Input, LoadingBlock, PageHeader } from '../c
 
 export default function SettingsPage() {
   useDocTitle('设置')
-  const { toast } = useFeedback()
+  const { toast, confirm } = useFeedback()
   const { data: settings, loading, error, reload } = useApi<Settings>(() => api.settings.get(), [])
   const { data: info, loading: infoLoading, reload: reloadInfo } = useApi<SystemInfo>(() => api.settings.systemInfo(), [])
   const { data: auth } = useApi(() => api.auth.status(), [])
@@ -43,6 +43,35 @@ export default function SettingsPage() {
       toast(errorMessage(err), 'error')
     } finally {
       setAccountSaving(false)
+    }
+  }
+
+  const renameAccount = async (account: Account) => {
+    const username = window.prompt(`修改「${account.username}」的用户名`, account.username)
+    if (!username || username.trim() === account.username) return
+    try {
+      await api.accounts.rename(account.id, username.trim())
+      toast('用户名已修改')
+      reloadAccounts()
+    } catch (err) {
+      toast(errorMessage(err), 'error')
+    }
+  }
+
+  const removeAccount = async (account: Account) => {
+    const ok = await confirm({
+      title: `删除账户「${account.username}」？`,
+      message: '该账户的数据库、照片、备份、分享链接都会永久删除，无法恢复。',
+      confirmText: '彻底删除',
+      danger: true,
+    })
+    if (!ok) return
+    try {
+      await api.accounts.remove(account.id)
+      toast('账户已删除')
+      reloadAccounts()
+    } catch (err) {
+      toast(errorMessage(err), 'error')
     }
   }
 
@@ -253,7 +282,11 @@ export default function SettingsPage() {
                       }
                     }} className="text-[10px] text-slate-400 hover:text-brand-600">改密</button>
                     {account.id !== auth.account?.id && (
-                      <button type="button" onClick={() => toggleAccount(account)} className="text-[10px] text-slate-400 hover:text-rose-500">{account.status === 'active' ? '停用' : '启用'}</button>
+                      <>
+                        <button type="button" onClick={() => renameAccount(account)} className="text-[10px] text-slate-400 hover:text-brand-600">改名</button>
+                        <button type="button" onClick={() => toggleAccount(account)} className="text-[10px] text-slate-400 hover:text-rose-500">{account.status === 'active' ? '停用' : '启用'}</button>
+                        {account.is_admin === 0 && <button type="button" onClick={() => removeAccount(account)} className="text-[10px] text-slate-300 hover:text-rose-600">删除</button>}
+                      </>
                     )}
                   </div>
                 ))}

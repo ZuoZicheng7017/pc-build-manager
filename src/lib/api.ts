@@ -171,6 +171,8 @@ export const api = {
     create: (username: string, password: string) => request<Account>('/accounts', json('POST', { username, password })),
     resetPassword: (id: number, password: string) => request<{ ok: boolean }>(`/accounts/${id}/password`, json('PATCH', { password })),
     setStatus: (id: number, status: 'active' | 'inactive') => request<Account>(`/accounts/${id}/status`, json('PATCH', { status })),
+    rename: (id: number, username: string) => request<Account>(`/accounts/${id}`, json('PATCH', { username })),
+    remove: (id: number) => request<{ ok: boolean }>(`/accounts/${id}`, { method: 'DELETE' }),
   },
 
   dashboard: () => request<DashboardData>('/dashboard'),
@@ -196,7 +198,7 @@ export const api = {
     setFollowUp: (id: number, payload: { follow_up_at: string; follow_up_note: string; rating: number }) =>
       request<OrderDetail>(`/orders/${id}/followup`, json('PATCH', payload)),
     deleteMedia: (mediaId: number) => request<void>(`/media/${mediaId}`, { method: 'DELETE' }),
-    share: (id: number) => request<{ token: string }>(`/orders/${id}/share`, { method: 'POST' }),
+    share: (id: number, expiresDays = 0) => request<{ token: string; expires_at: string }>(`/orders/${id}/share?expires=${expiresDays}`, { method: 'POST' }),
     revokeShare: (id: number) => request<void>(`/orders/${id}/share`, { method: 'DELETE' }),
     restore: (id: number) => request<OrderDetail>(`/trash/orders/${id}/restore`, { method: 'POST' }),
     purge: (id: number) => request<void>(`/trash/orders/${id}`, { method: 'DELETE' }),

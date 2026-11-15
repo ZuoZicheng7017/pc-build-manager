@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { DATA_DIR, UPLOAD_DIR, db, getSettingsMap, nowIso, writeSetting } from './db'
 import { currentTenant } from './context'
-import { listAccounts, tenantFor } from './accounts'
+import { checkpointAccounts, listAccounts, tenantFor } from './accounts'
 import { runWithTenant } from './context'
 
 export const BACKUP_DIR = process.env.BACKUP_DIR || path.join(path.dirname(DATA_DIR), 'backups')
@@ -36,6 +36,7 @@ export async function createBackupZip(options: { dir?: string; prefix?: string }
 
   // 先把 WAL 落盘，避免 zip 里的 app.db 缺少最近写入
   try { db.exec('PRAGMA wal_checkpoint(TRUNCATE)') } catch { /* ignore */ }
+  checkpointAccounts()
 
   const counts = {
     customers: (db.prepare('SELECT COUNT(*) AS c FROM active_customers').get() as { c: number }).c,
@@ -60,6 +61,7 @@ export async function createBackupZip(options: { dir?: string; prefix?: string }
     archive.pipe(output)
     archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' })
     archive.file(path.join(tenant?.dataDir ?? DATA_DIR, 'app.db'), { name: 'app.db' })
+    if (tenant?.isAdmin) archive.file(path.join(DATA_DIR, 'accounts.db'), { name: 'accounts.db' })
     const uploadDir = tenant?.uploadDir ?? UPLOAD_DIR
     if (fs.existsSync(uploadDir)) archive.directory(uploadDir, 'uploads')
     void archive.finalize()

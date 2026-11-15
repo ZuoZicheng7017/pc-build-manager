@@ -80,6 +80,8 @@ export default function OrderDetail() {
   const [signatureSaving, setSignatureSaving] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareToken, setShareToken] = useState('')
+  const [shareDays, setShareDays] = useState(7)
+  const [shareExpiresAt, setShareExpiresAt] = useState('')
   const [shareBusy, setShareBusy] = useState(false)
   const imageInput = useRef<HTMLInputElement>(null)
   const cameraInput = useRef<HTMLInputElement>(null)
@@ -279,8 +281,9 @@ export default function OrderDetail() {
   const shareOrder = async () => {
     setShareBusy(true)
     try {
-      const { token } = await api.orders.share(order.id)
+      const { token, expires_at } = await api.orders.share(order.id, shareDays)
       setShareToken(token)
+      setShareExpiresAt(expires_at)
       setShareOpen(true)
     } catch (err) {
       toast(errorMessage(err), 'error')
@@ -300,6 +303,7 @@ export default function OrderDetail() {
     try {
       await api.orders.revokeShare(order.id)
       setShareToken('')
+      setShareExpiresAt('')
       toast('分享链接已撤销')
     } catch (err) {
       toast(errorMessage(err), 'error')
@@ -826,11 +830,19 @@ export default function OrderDetail() {
               <Input value={shareUrl} readOnly onFocus={(e) => e.target.select()} className="font-mono text-[11px]" />
               <Button variant="secondary" onClick={() => copy(shareUrl, '分享链接')}>复制</Button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-3 flex flex-wrap items-center gap-2">
               <a href={shareUrl} target="_blank" rel="noreferrer"><Button size="sm" variant="secondary"><ExternalLink size={13} /> 预览</Button></a>
+              <Select value={String(shareDays)} onChange={(e) => setShareDays(Number(e.target.value))} className="h-8 w-auto py-0 text-[11px]">
+                <option value="7">有效期 7 天</option>
+                <option value="30">有效期 30 天</option>
+                <option value="0">永久有效</option>
+              </Select>
+              <Button size="sm" variant="ghost" onClick={shareOrder} loading={shareBusy}>更新有效期</Button>
               <Button size="sm" variant="ghost" onClick={revokeShare} className="text-rose-500 hover:bg-rose-50"><Trash2 size={13} /> 撤销链接</Button>
             </div>
-            <p className="mt-3 text-[10px] leading-relaxed text-slate-400">链接长期有效，请只发给当前客户；撤销后需要重新生成。</p>
+            <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
+              {shareExpiresAt ? `链接到期时间：${shareExpiresAt.replace('T', ' ').slice(0, 16)}` : '当前链接长期有效'}；请只发给当前客户，撤销后需要重新生成。
+            </p>
           </>
         ) : (
           <div className="py-4 text-center">

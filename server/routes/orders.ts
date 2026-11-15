@@ -311,8 +311,10 @@ function createShare(ctx: Ctx): void {
   const token = order.share_token || randomUUID()
   if (!order.share_token) db.prepare('UPDATE orders SET share_token = ?, updated_at = ? WHERE id = ?').run(token, nowIso(), orderId)
   const tenant = currentTenant()
-  if (tenant) registerShare(token, tenant.accountId, orderId)
-  sendJson(ctx.res, { token })
+  const days = Math.max(0, Number(queryStr(ctx.url, 'expires') || 0))
+  const expiresAt = days > 0 ? new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString() : ''
+  if (tenant) registerShare(token, tenant.accountId, orderId, expiresAt)
+  sendJson(ctx.res, { token, expires_at: expiresAt })
 }
 
 function revokeShare(ctx: Ctx): void {
@@ -331,10 +333,10 @@ function publicShare(ctx: Ctx): void {
   if (!mapped) throw new HttpError(404, '分享链接不存在或已失效')
   const account = getAccount(mapped.accountId)
   if (!account || account.status !== 'active') throw new HttpError(404, '分享链接不存在或已失效')
-  runWithTenant(tenantFor(account), () => renderPublicShare(ctx, mapped.orderId))
+  runWithTenant(tenantFor(account), () => renderPublicShare(ctx, mapped.orderId, token))
 }
 
-function renderPublicShare(ctx: Ctx, orderId: number): void {
+function renderPublicShare(ctx: Ctx, orderId: number, shareToken: string): void {
   const detail = getOrderDetail(orderId)
   const settings = getSettingsMap()
   const data: SharedOrder = {
@@ -360,7 +362,7 @@ function renderPublicShare(ctx: Ctx, orderId: number): void {
     staff_name: detail.staff_name ?? null,
     services: detail.services,
     items: detail.items,
-    media: detail.media,
+    media: detail.media.map((item) => ({ ...item, url: `${item.url}?share=${encodeURIComponent(shareToken)}` })),
     checklist: {
       done: detail.checklist.filter((item) => item.done).length,
       total: detail.checklist.length,

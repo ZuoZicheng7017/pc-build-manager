@@ -97,7 +97,7 @@
 @media print {
   @page {
     size: A4;
-    margin: 12mm 13mm;
+    margin: 9mm 11mm;
   }
   html, body {
     background: #fff !important;
@@ -116,8 +116,8 @@
     width: 100% !important;
     max-width: none !important;
     color: #000 !important;
-    font-size: 10.5pt;
-    line-height: 1.45;
+    font-size: 10pt;
+    line-height: 1.38;
   }
   /* 打印时取消浅灰字，全部改为纯黑，避免针式/低精度打印发虚 */
   .print-sheet * {
@@ -133,23 +133,27 @@
     color: #000 !important;
   }
   .print-sheet h1 {
-    font-size: 16pt !important;
+    font-size: 15pt !important;
     font-weight: 800 !important;
   }
   .print-sheet h2 {
-    font-size: 17pt !important;
+    font-size: 16pt !important;
     font-weight: 800 !important;
   }
   .print-sheet h3 {
-    font-size: 11.5pt !important;
+    font-size: 11pt !important;
     font-weight: 800 !important;
   }
-  .print-sheet [class*="text-[9px]"] { font-size: 8pt !important; }
-  .print-sheet [class*="text-[10px]"] { font-size: 9pt !important; }
-  .print-sheet [class*="text-[11px]"] { font-size: 9.5pt !important; }
-  .print-sheet [class*="text-[12px]"] { font-size: 10pt !important; }
-  .print-sheet [class*="text-xs"] { font-size: 10pt !important; }
-  .print-sheet [class*="text-sm"] { font-size: 10.5pt !important; }
+  .print-sheet [class*="text-[9px]"] { font-size: 7.5pt !important; }
+  .print-sheet [class*="text-[10px]"] { font-size: 8.5pt !important; }
+  .print-sheet [class*="text-[11px]"] { font-size: 9pt !important; }
+  .print-sheet [class*="text-[12px]"] { font-size: 9.5pt !important; }
+  .print-sheet [class*="text-xs"] { font-size: 9.5pt !important; }
+  .print-sheet [class*="text-sm"] { font-size: 10pt !important; }
+  .print-sheet [class*="mt-5"] { margin-top: 8px !important; }
+  .print-sheet [class*="mt-10"] { margin-top: 16px !important; }
+  .print-sheet [class*="gap-y-1.5"] { row-gap: 2px !important; }
+  .print-sheet [class*="pb-5"] { padding-bottom: 9px !important; }
   .print-sheet [class*="bg-slate-50"] {
     background: #f1f1f1 !important;
   }
@@ -165,7 +169,7 @@
   .print-sheet th,
   .print-sheet td {
     border: 1px solid #555 !important;
-    padding: 4px 5px !important;
+    padding: 3px 4px !important;
   }
   .print-sheet th {
     background: #e5e5e5 !important;

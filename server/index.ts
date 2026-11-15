@@ -16,8 +16,8 @@ import { registerServiceRoutes } from './routes/services'
 import { registerReportRoutes } from './routes/reports'
 import { startAutoBackupLoop } from './backup'
 import {
-  clearSessionCookie, createAccount, createSession, ensureOwnerAccount, getAccount, listAccounts,
-  logout, sessionAccount, setAccountPassword, setAccountStatus, setSessionCookie, tenantFor, verifyPassword,
+  clearSessionCookie, createAccount, createSession, deleteAccount, ensureOwnerAccount, getAccount, listAccounts,
+  logout, mediaAccountForPath, renameAccount, sessionAccount, setAccountPassword, setAccountStatus, setSessionCookie, shareAccount, tenantFor, verifyPassword,
 } from './accounts'
 import { runWithTenant } from './context'
 import { resolveUpload } from './helpers'
@@ -65,6 +65,27 @@ router.post('/api/accounts', async (ctx) => {
     sendJson(ctx.res, account, 201)
   } catch (err) {
     sendJson(ctx.res, { error: err instanceof Error ? err.message : '创建失败' }, 422)
+  }
+})
+router.patch('/api/accounts/:id', async (ctx) => {
+  const current = sessionAccount(ctx.req)
+  if (!current?.is_admin) { sendJson(ctx.res, { error: '只有主账户可以修改账户' }, 403); return }
+  const body = await readJson<{ username?: string }>(ctx.req)
+  try {
+    sendJson(ctx.res, renameAccount(Number(ctx.params.id), String(body.username ?? '')))
+  } catch (err) {
+    sendJson(ctx.res, { error: err instanceof Error ? err.message : '修改失败' }, 422)
+  }
+})
+router.delete('/api/accounts/:id', (ctx) => {
+  const current = sessionAccount(ctx.req)
+  if (!current?.is_admin) { sendJson(ctx.res, { error: '只有主账户可以删除账户' }, 403); return }
+  if (Number(ctx.params.id) === current.id) { sendJson(ctx.res, { error: '不能删除自己' }, 422); return }
+  try {
+    deleteAccount(Number(ctx.params.id))
+    sendJson(ctx.res, { ok: true })
+  } catch (err) {
+    sendJson(ctx.res, { error: err instanceof Error ? err.message : '删除失败' }, 422)
   }
 })
 router.patch('/api/accounts/:id/password', async (ctx) => {
@@ -280,6 +301,14 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname.startsWith('/uploads/')) {
+      const mediaAccount = mediaAccountForPath(pathname)
+      const current = sessionAccount(req)
+      const shared = shareAccount(url.searchParams.get('share') || '')
+      const allowed = Boolean(mediaAccount && (current?.id === mediaAccount || shared?.accountId === mediaAccount))
+      if (!allowed) {
+        sendJson(res, { error: '无权访问该媒体文件' }, 403)
+        return
+      }
       serveUploads(req, res, pathname)
       return
     }
