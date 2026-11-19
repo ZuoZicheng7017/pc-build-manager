@@ -12,6 +12,7 @@ import { registerPartRoutes } from './routes/parts'
 import { registerTemplateRoutes } from './routes/templates'
 import { registerDashboardRoutes } from './routes/dashboard'
 import { registerSettingsRoutes } from './routes/settings'
+import { registerMarketRoutes } from './routes/market'
 import { registerServiceRoutes } from './routes/services'
 import { registerReportRoutes } from './routes/reports'
 import { startAutoBackupLoop } from './backup'
@@ -117,6 +118,7 @@ registerServiceRoutes(router)
 registerReportRoutes(router)
 registerTemplateRoutes(router)
 registerSettingsRoutes(router)
+registerMarketRoutes(router)
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',

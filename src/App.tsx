@@ -15,6 +15,7 @@ const Customers = lazy(() => import('./pages/Customers'))
 const CustomerDetail = lazy(() => import('./pages/CustomerDetail'))
 const StaffPage = lazy(() => import('./pages/Staff'))
 const Parts = lazy(() => import('./pages/Parts'))
+const Market = lazy(() => import('./pages/Market'))
 const Services = lazy(() => import('./pages/Services'))
 const Prices = lazy(() => import('./pages/Prices'))
 const Templates = lazy(() => import('./pages/Templates'))
@@ -50,6 +51,7 @@ export default function App() {
               <Route path="customers/:id" element={<CustomerDetail />} />
               <Route path="staff" element={<StaffPage />} />
               <Route path="parts" element={<Parts />} />
+              <Route path="market" element={<Market />} />
               <Route path="services" element={<Services />} />
               <Route path="prices" element={<Prices />} />
               <Route path="templates" element={<Templates />} />

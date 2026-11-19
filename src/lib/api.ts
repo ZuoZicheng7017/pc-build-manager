@@ -9,6 +9,8 @@ import type {
   OrderListResult,
   OrderMedia,
   MediaCategory,
+  MarketItem,
+  AffiliateConfig,
   OrderStatus,
   Part,
   PartPrice,
@@ -273,6 +275,16 @@ export const api = {
     remove: (id: number) => request<void>(`/templates/${id}`, { method: 'DELETE' }),
     createOrder: (id: number, payload: { customer_id: number; appointment_at?: string; staff_id?: number | null; notes?: string }) =>
       request<OrderDetail>(`/templates/${id}/create-order`, json('POST', payload)),
+  },
+
+  market: {
+    list: (params: { q?: string; category?: string; platform?: string } = {}) => request<MarketItem[]>('/market' + qs(params)),
+    create: (payload: Partial<MarketItem>) => request<MarketItem>('/market', json('POST', payload)),
+    update: (id: number, payload: Partial<MarketItem>) => request<MarketItem>(`/market/${id}`, json('PUT', payload)),
+    remove: (id: number) => request<void>(`/market/${id}`, { method: 'DELETE' }),
+    pddConfig: () => request<AffiliateConfig>('/affiliate/pdd'),
+    savePddConfig: (payload: { client_id?: string; client_secret?: string; pid?: string }) => request<AffiliateConfig>('/affiliate/pdd', json('PUT', payload)),
+    searchPdd: (q: string) => request<{ items: Array<{ external_id: string; title: string; price_cents: number; image_url: string; shop_name: string; url: string; sales_tip: string }> }>('/affiliate/pdd/search?q=' + encodeURIComponent(q)),
   },
 
   settings: {

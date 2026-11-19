@@ -129,6 +129,31 @@ CREATE TABLE IF NOT EXISTS part_prices (
   recorded_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS market_items (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  category TEXT NOT NULL DEFAULT 'CPU',
+  name TEXT NOT NULL,
+  brand TEXT NOT NULL DEFAULT '',
+  model TEXT NOT NULL DEFAULT '',
+  specs TEXT NOT NULL DEFAULT '',
+  platform TEXT NOT NULL DEFAULT 'manual',
+  url TEXT NOT NULL DEFAULT '',
+  price_cents INTEGER NOT NULL DEFAULT 0,
+  shop_name TEXT NOT NULL DEFAULT '',
+  note TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS affiliate_configs (
+  platform TEXT PRIMARY KEY,
+  client_id TEXT NOT NULL DEFAULT '',
+  client_secret TEXT NOT NULL DEFAULT '',
+  pid TEXT NOT NULL DEFAULT '',
+  extra_json TEXT NOT NULL DEFAULT '',
+  updated_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS templates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
