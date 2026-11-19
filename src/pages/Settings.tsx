@@ -76,8 +76,8 @@ export default function SettingsPage() {
   const testPdd = async () => {
     setPddTesting(true)
     try {
-      const { items } = await api.market.searchPdd('CPU')
-      toast(items.length > 0 ? `连接成功，返回 ${items.length} 个商品` : '连接成功，但没有返回商品')
+      const { items } = await api.market.searchPdd('零食')
+      toast(`接口连接成功，测试词返回 ${items.length} 个商品`)
     } catch (err) {
       toast(errorMessage(err), 'error')
     } finally {

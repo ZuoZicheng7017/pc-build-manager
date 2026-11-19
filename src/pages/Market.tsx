@@ -190,6 +190,9 @@ export default function Market() {
           <Button onClick={searchPdd} loading={searching}><Search size={14} /> 搜索</Button>
         </div>
         <div className="mt-3"><Field label="导入到品类"><Select value={importCategory} onChange={(e) => setImportCategory(e.target.value)}>{MARKET_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field></div>
+        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-700">
+          拼多多多多进宝对电脑/3C 品类覆盖很少，搜索 CPU、显卡、主板等可能返回 0 条。搜不到时请用「新增配件」手动保存京东/淘宝链接和报价。
+        </p>
         <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto">
           {results.map((item) => (
             <div key={item.external_id} className="flex gap-3 rounded-xl border border-slate-100 p-2.5">

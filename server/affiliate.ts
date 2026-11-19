@@ -68,7 +68,7 @@ export async function searchPdd(keyword: string, page = 1, pageSize = 20): Promi
     client_id: config.client_id,
     timestamp: String(Math.floor(Date.now() / 1000)),
     data_type: 'JSON',
-    q: keyword.trim(),
+    keyword: keyword.trim(),
     pid: config.pid,
     page: String(page),
     page_size: String(Math.min(Math.max(pageSize, 1), 50)),
