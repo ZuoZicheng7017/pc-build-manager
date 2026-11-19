@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const [pddSecret, setPddSecret] = useState('')
   const [pddPid, setPddPid] = useState('')
   const [pddSaving, setPddSaving] = useState(false)
+  const [pddTesting, setPddTesting] = useState(false)
   const { data: accounts, reload: reloadAccounts } = useApi<Account[]>(
     () => (auth?.account?.is_admin ? api.accounts.list() : Promise.resolve([])),
     [auth?.account?.is_admin],
@@ -69,6 +70,18 @@ export default function SettingsPage() {
       toast(errorMessage(err), 'error')
     } finally {
       setPddSaving(false)
+    }
+  }
+
+  const testPdd = async () => {
+    setPddTesting(true)
+    try {
+      const { items } = await api.market.searchPdd('CPU')
+      toast(items.length > 0 ? `连接成功，返回 ${items.length} 个商品` : '连接成功，但没有返回商品')
+    } catch (err) {
+      toast(errorMessage(err), 'error')
+    } finally {
+      setPddTesting(false)
     }
   }
 
@@ -302,7 +315,10 @@ export default function SettingsPage() {
             </div>
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-[10px] leading-relaxed text-slate-400">在拼多多开放平台创建应用并申请「多多进宝商品搜索」权限后填写；审核前可先手动维护行情。</p>
-              <Button size="sm" onClick={savePdd} loading={pddSaving}><Save size={14} /> 保存配置</Button>
+              <div className="flex gap-2">
+                <Button size="sm" variant="secondary" onClick={testPdd} loading={pddTesting}><RefreshCw size={14} /> 测试连接</Button>
+                <Button size="sm" onClick={savePdd} loading={pddSaving}><Save size={14} /> 保存配置</Button>
+              </div>
             </div>
           </section>
 
