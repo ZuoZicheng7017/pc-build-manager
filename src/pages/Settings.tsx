@@ -293,7 +293,7 @@ export default function SettingsPage() {
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label="client_id"><Input value={pddClientId} onChange={(e) => setPddClientId(e.target.value)} placeholder="拼多多开放平台 client_id" /></Field>
-              <Field label="推广位 PID"><Input value={pddPid} onChange={(e) => setPddPid(e.target.value)} placeholder="例如：123456_7890123" /></Field>
+              <Field label="推广位 PID"><Input value={pddPid} onChange={(e) => setPddPid(e.target.value)} placeholder="多多进宝推广位 PID" /></Field>
               <div className="sm:col-span-2">
                 <Field label="client_secret" hint={pddConfig?.has_secret ? '已保存；留空表示不修改' : '只保存在本机账户数据库'}>
                   <Input type="password" value={pddSecret} onChange={(e) => setPddSecret(e.target.value)} placeholder={pddConfig?.has_secret ? '••••••••（留空不修改）' : '拼多多开放平台 client_secret'} />
