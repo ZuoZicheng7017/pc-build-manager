@@ -117,19 +117,24 @@ export async function inspectProductLink(rawUrl: string): Promise<LinkInfo> {
     throw new Error('链接读取失败，可能被平台拦截；请手动填写标题和价格')
   }
 
-  const title = decode(meta(html, 'og:title') || meta(html, 'twitter:title') || html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || '')
-    .replace(/\s*[-_|].*(京东|淘宝|天猫|拼多多).*$/i, '')
-    .slice(0, 200)
-  const image = meta(html, 'og:image') || meta(html, 'twitter:image')
+  const requiresLogin = /"needLogin"\s*:\s*true/i.test(html) || /登录后查看|请登录/i.test(html)
+  const title = requiresLogin
+    ? ''
+    : decode(meta(html, 'og:title') || meta(html, 'twitter:title') || html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || '')
+      .replace(/\s*[-_|].*(京东|淘宝|天猫|拼多多).*$/i, '')
+      .slice(0, 200)
+  const image = requiresLogin ? '' : meta(html, 'og:image') || meta(html, 'twitter:image')
   const shop = meta(html, 'og:site_name') || finalUrl.hostname.replace(/^www\./, '')
   const productPage = isProductPage(finalUrl)
   let price = productPage ? parsePrice(html, platformOf(finalUrl)) : 0
   if (!price && productPage && platformOf(finalUrl) === 'jd') price = await jdPrice(finalUrl)
-  const warning = !productPage
-    ? '这个链接不像商品详情页，请打开具体商品后复制链接；先手动填写标题和价格'
-    : !price
-      ? '没有读取到价格，请手动填写；之后仍可点击“更新价格”重试'
-      : ''
+  const warning = requiresLogin
+    ? '拼多多商品页要求在 App/登录后查看，无法匿名读取商品标题和价格；请手动填写标题和价格'
+    : !productPage
+      ? '这个链接不像商品详情页，请打开具体商品后复制链接；先手动填写标题和价格'
+      : !price
+        ? '没有读取到价格，请手动填写；之后仍可点击“更新价格”重试'
+        : ''
 
   return {
     url: finalUrl.toString(),

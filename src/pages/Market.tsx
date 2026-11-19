@@ -86,11 +86,14 @@ export default function Market() {
     if (!linkUrl.trim()) { toast('请粘贴分享链接', 'error'); return }
     setReading(true)
     try {
-      const info = await api.market.inspectLink(linkUrl.trim())
+      const raw = linkUrl.trim()
+      const url = raw.match(/https?:\/\/[^\s]+/)?.[0] ?? raw
+      const sharedTitle = raw.replace(url, '').replace(/【[^】]*】/g, '').trim()
+      const info = await api.market.inspectLink(url)
       setLinkOpen(false)
       setLinkUrl('')
       openCreate({
-        category: linkCategory, name: info.title, platform: info.platform, url: info.url,
+        category: linkCategory, name: info.title || sharedTitle, platform: info.platform, url: info.url,
         image_url: info.image_url, price: info.price_cents ? (info.price_cents / 100).toFixed(2) : '',
         shop_name: info.shop_name, note: info.warning,
       })
