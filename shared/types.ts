@@ -119,33 +119,6 @@ export interface PartPrice {
   recorded_at: string
 }
 
-export const MARKET_CATEGORIES = ['CPU', '主板', '内存', '显卡', '电源', '散热', 'SSD', '机械硬盘', '机箱', '其他'] as const
-export type MarketCategory = (typeof MARKET_CATEGORIES)[number]
-export type MarketPlatform = 'pdd' | 'jd' | 'taobao' | 'manual'
-
-export const MARKET_PLATFORM_LABELS: Record<MarketPlatform, string> = {
-  pdd: '拼多多', jd: '京东', taobao: '淘宝', manual: '手动',
-}
-
-export interface MarketItem {
-  id: number
-  category: string
-  name: string
-  brand: string
-  model: string
-  specs: string
-  platform: MarketPlatform
-  url: string
-  price_cents: number
-  shop_name: string
-  note: string
-  image_url: string
-  price_checked_at: string
-  price_error: string
-  created_at: string
-  updated_at: string
-}
-
 export interface TemplateItem {
   id?: number
   template_id?: number

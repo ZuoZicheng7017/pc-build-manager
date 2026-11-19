@@ -129,25 +129,6 @@ CREATE TABLE IF NOT EXISTS part_prices (
   recorded_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS market_items (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  category TEXT NOT NULL DEFAULT 'CPU',
-  name TEXT NOT NULL,
-  brand TEXT NOT NULL DEFAULT '',
-  model TEXT NOT NULL DEFAULT '',
-  specs TEXT NOT NULL DEFAULT '',
-  platform TEXT NOT NULL DEFAULT 'manual',
-  url TEXT NOT NULL DEFAULT '',
-  price_cents INTEGER NOT NULL DEFAULT 0,
-  shop_name TEXT NOT NULL DEFAULT '',
-  note TEXT NOT NULL DEFAULT '',
-  image_url TEXT NOT NULL DEFAULT '',
-  price_checked_at TEXT NOT NULL DEFAULT '',
-  price_error TEXT NOT NULL DEFAULT '',
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS templates (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
@@ -325,9 +306,6 @@ ensureColumn('orders', 'deleted_at', "TEXT NOT NULL DEFAULT ''")
 ensureColumn('orders', 'inventory_applied', 'INTEGER NOT NULL DEFAULT 0')
 ensureColumn('customers', 'deleted_at', "TEXT NOT NULL DEFAULT ''")
 ensureColumn('parts', 'deleted_at', "TEXT NOT NULL DEFAULT ''")
-ensureColumn('market_items', 'image_url', "TEXT NOT NULL DEFAULT ''")
-ensureColumn('market_items', 'price_checked_at', "TEXT NOT NULL DEFAULT ''")
-ensureColumn('market_items', 'price_error', "TEXT NOT NULL DEFAULT ''")
 // 未删除工单视图：列表、报表、提醒都只看 active_orders；回收站直接查 orders
 db.exec("DROP VIEW IF EXISTS active_orders")
 db.exec("CREATE VIEW active_orders AS SELECT * FROM orders WHERE deleted_at = ''")

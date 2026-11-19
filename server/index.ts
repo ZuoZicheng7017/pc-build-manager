@@ -12,11 +12,9 @@ import { registerPartRoutes } from './routes/parts'
 import { registerTemplateRoutes } from './routes/templates'
 import { registerDashboardRoutes } from './routes/dashboard'
 import { registerSettingsRoutes } from './routes/settings'
-import { registerMarketRoutes } from './routes/market'
 import { registerServiceRoutes } from './routes/services'
 import { registerReportRoutes } from './routes/reports'
 import { startAutoBackupLoop } from './backup'
-import { startMarketPriceLoop } from './market-price'
 import {
   clearSessionCookie, createAccount, createSession, deleteAccount, ensureOwnerAccount, getAccount, listAccounts,
   logout, mediaAccountForPath, renameAccount, sessionAccount, setAccountPassword, setAccountStatus, setSessionCookie, shareAccount, tenantFor, verifyPassword,
@@ -119,7 +117,6 @@ registerServiceRoutes(router)
 registerReportRoutes(router)
 registerTemplateRoutes(router)
 registerSettingsRoutes(router)
-registerMarketRoutes(router)
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -335,7 +332,6 @@ server.listen(PORT, HOST, () => {
   if (fs.existsSync(distDir)) console.log(`  前端静态资源  →  ${distDir}\n`)
   else console.log(`  开发模式请另开终端运行 pnpm dev:web（http://localhost:5173）\n`)
   startAutoBackupLoop()
-  startMarketPriceLoop()
 })
 
 async function shutdown(): Promise<void> {

@@ -9,7 +9,6 @@ import type {
   OrderListResult,
   OrderMedia,
   MediaCategory,
-  MarketItem,
   OrderStatus,
   Part,
   PartPrice,
@@ -274,15 +273,6 @@ export const api = {
     remove: (id: number) => request<void>(`/templates/${id}`, { method: 'DELETE' }),
     createOrder: (id: number, payload: { customer_id: number; appointment_at?: string; staff_id?: number | null; notes?: string }) =>
       request<OrderDetail>(`/templates/${id}/create-order`, json('POST', payload)),
-  },
-
-  market: {
-    list: (params: { q?: string; category?: string; platform?: string } = {}) => request<MarketItem[]>('/market' + qs(params)),
-    create: (payload: Partial<MarketItem>) => request<MarketItem>('/market', json('POST', payload)),
-    update: (id: number, payload: Partial<MarketItem>) => request<MarketItem>(`/market/${id}`, json('PUT', payload)),
-    remove: (id: number) => request<void>(`/market/${id}`, { method: 'DELETE' }),
-    inspectLink: (url: string) => request<{ url: string; platform: MarketItem['platform']; title: string; price_cents: number; image_url: string; shop_name: string; warning: string }>('/market/inspect', json('POST', { url })),
-    refresh: (id: number) => request<{ price_cents: number; checked_at: string; error: string }>(`/market/${id}/refresh`, { method: 'POST' }),
   },
 
   settings: {

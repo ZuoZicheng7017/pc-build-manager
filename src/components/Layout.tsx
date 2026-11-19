@@ -13,7 +13,6 @@ import {
   Menu,
   MoreHorizontal,
   Plus,
-  ShoppingBag,
   Settings,
   Trash2,
   Users,
@@ -34,7 +33,6 @@ const NAV: NavDef[] = [
   { to: '/customers', label: '客户', icon: Users },
   { to: '/staff', label: '员工', icon: HardHat },
   { to: '/parts', label: '配件', icon: Cpu },
-  { to: '/market', label: '配件行情', icon: ShoppingBag },
   { to: '/services', label: '服务', icon: Wrench },
   { to: '/prices', label: '价格', icon: BadgeDollarSign },
   { to: '/templates', label: '配置', icon: Boxes },
@@ -63,7 +61,6 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith('/customers')) return '客户'
   if (pathname.startsWith('/staff')) return '员工'
   if (pathname.startsWith('/parts')) return '配件'
-  if (pathname.startsWith('/market')) return '配件行情'
   if (pathname.startsWith('/services')) return '服务项目'
   if (pathname.startsWith('/prices')) return '价格表'
   if (pathname.startsWith('/templates/new')) return '新建配置'
