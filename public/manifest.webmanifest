@@ -9,6 +9,12 @@
   "lang": "zh-CN",
   "icons": [
     {
+      "src": "/icon-260.png",
+      "sizes": "260x260",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml",

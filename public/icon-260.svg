@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260" viewBox="0 0 260 260">
+  <defs>
+    <linearGradient id="bg" x1="28" y1="18" x2="226" y2="248" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#111a35"/>
+      <stop offset="0.58" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#241c5c"/>
+    </linearGradient>
+    <linearGradient id="screen" x1="72" y1="64" x2="188" y2="154" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1e293b"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="158" y1="166" x2="216" y2="224" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(130 118) rotate(90) scale(112)">
+      <stop offset="0" stop-color="#6366f1" stop-opacity="0.3"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#020617" flood-opacity="0.38"/>
+    </filter>
+  </defs>
+
+  <rect width="260" height="260" rx="58" fill="url(#bg)"/>
+  <circle cx="130" cy="120" r="112" fill="url(#glow)"/>
+  <rect x="10" y="10" width="240" height="240" rx="50" fill="none" stroke="#a5b4fc" stroke-opacity="0.2" stroke-width="2"/>
+
+  <!-- monitor / build workspace -->
+  <g filter="url(#shadow)">
+    <rect x="54" y="56" width="152" height="102" rx="14" fill="url(#screen)" stroke="#c7d2fe" stroke-width="8"/>
+    <rect x="68" y="70" width="124" height="74" rx="7" fill="#0b1224"/>
+    <path d="M86 88h52M86 102h34" stroke="#a5b4fc" stroke-width="7" stroke-linecap="round"/>
+    <path d="M86 116h76" stroke="#4f46e5" stroke-width="7" stroke-linecap="round"/>
+    <path d="M112 158v14M148 158v14M96 176h68" stroke="#c7d2fe" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <!-- check badge -->
+  <g filter="url(#shadow)">
+    <circle cx="188" cy="192" r="38" fill="url(#badge)" stroke="#e0e7ff" stroke-width="5"/>
+    <path d="M169 192l13 13 25-29" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
