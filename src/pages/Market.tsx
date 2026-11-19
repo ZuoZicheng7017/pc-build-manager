@@ -1,17 +1,17 @@
 import { useState } from 'react'
-import { ExternalLink, PackageSearch, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react'
+import { ExternalLink, Link2, PackageSearch, Pencil, Plus, RefreshCw, Search, Trash2 } from 'lucide-react'
 import type { MarketItem } from '../../shared/types'
 import { MARKET_CATEGORIES, MARKET_PLATFORM_LABELS } from '../../shared/types'
 import { api } from '../lib/api'
+import { errorMessage } from '../lib/api'
 import { useApi, useDocTitle } from '../lib/hooks'
 import { useFeedback } from '../lib/feedback'
 import { money } from '../lib/format'
-import { errorMessage } from '../lib/api'
 import { Badge, Button, EmptyState, ErrorBlock, Field, Input, LoadingBlock, Modal, PageHeader, Select, Textarea } from '../components/ui'
 
 const emptyForm = {
   category: 'CPU', name: '', brand: '', model: '', specs: '', platform: 'manual' as MarketItem['platform'],
-  url: '', price: '', shop_name: '', note: '',
+  url: '', image_url: '', price: '', shop_name: '', note: '',
 }
 
 export default function Market() {
@@ -28,15 +28,16 @@ export default function Market() {
   const [editing, setEditing] = useState<MarketItem | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [saving, setSaving] = useState(false)
-  const [importOpen, setImportOpen] = useState(false)
-  const [keyword, setKeyword] = useState('')
-  const [importCategory, setImportCategory] = useState('CPU')
-  const [searching, setSearching] = useState(false)
-  const [results, setResults] = useState<Array<{ external_id: string; title: string; price_cents: number; image_url: string; shop_name: string; url: string; sales_tip: string }>>([])
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkUrl, setLinkUrl] = useState('')
+  const [linkCategory, setLinkCategory] = useState('CPU')
+  const [reading, setReading] = useState(false)
+  const [refreshingId, setRefreshingId] = useState<number | null>(null)
+  const [refreshingAll, setRefreshingAll] = useState(false)
 
-  const openCreate = () => {
+  const openCreate = (seed: Partial<typeof emptyForm> = {}) => {
     setEditing(null)
-    setForm(emptyForm)
+    setForm({ ...emptyForm, ...seed })
     setOpen(true)
   }
 
@@ -44,7 +45,8 @@ export default function Market() {
     setEditing(item)
     setForm({
       category: item.category, name: item.name, brand: item.brand, model: item.model, specs: item.specs,
-      platform: item.platform, url: item.url, price: (item.price_cents / 100).toFixed(2), shop_name: item.shop_name, note: item.note,
+      platform: item.platform, url: item.url, image_url: item.image_url, price: (item.price_cents / 100).toFixed(2),
+      shop_name: item.shop_name, note: item.note,
     })
     setOpen(true)
   }
@@ -55,7 +57,7 @@ export default function Market() {
     try {
       const payload = {
         category: form.category, name: form.name.trim(), brand: form.brand.trim(), model: form.model.trim(),
-        specs: form.specs.trim(), platform: form.platform, url: form.url.trim(),
+        specs: form.specs.trim(), platform: form.platform, url: form.url.trim(), image_url: form.image_url.trim(),
         price_cents: Math.round((Number(form.price) || 0) * 100), shop_name: form.shop_name.trim(), note: form.note.trim(),
       }
       if (editing) await api.market.update(editing.id, payload)
@@ -80,29 +82,54 @@ export default function Market() {
     }
   }
 
-  const searchPdd = async () => {
-    if (!keyword.trim()) return
-    setSearching(true)
+  const readLink = async () => {
+    if (!linkUrl.trim()) { toast('请粘贴分享链接', 'error'); return }
+    setReading(true)
     try {
-      const { items: found } = await api.market.searchPdd(keyword.trim())
-      setResults(found)
-      if (found.length === 0) toast('没有搜索到商品')
+      const info = await api.market.inspectLink(linkUrl.trim())
+      setLinkOpen(false)
+      setLinkUrl('')
+      openCreate({
+        category: linkCategory, name: info.title, platform: info.platform, url: info.url,
+        image_url: info.image_url, price: info.price_cents ? (info.price_cents / 100).toFixed(2) : '',
+        shop_name: info.shop_name, note: info.warning,
+      })
+      if (info.warning) toast(info.warning, 'error')
+      else toast('已读取链接，请确认后保存')
     } catch (err) {
       toast(errorMessage(err), 'error')
     } finally {
-      setSearching(false)
+      setReading(false)
     }
   }
 
-  const importItem = async (item: (typeof results)[number]) => {
+  const refreshItem = async (item: MarketItem) => {
+    setRefreshingId(item.id)
     try {
-      await api.market.create({
-        category: importCategory, name: item.title, platform: 'pdd', url: item.url,
-        price_cents: item.price_cents, shop_name: item.shop_name, note: item.sales_tip,
-      })
-      toast('已保存到配件行情')
+      const result = await api.market.refresh(item.id)
+      if (result.error) toast(result.error, 'error')
+      else toast(`价格已更新为 ${money(result.price_cents)}`)
+      reload()
     } catch (err) {
       toast(errorMessage(err), 'error')
+    } finally {
+      setRefreshingId(null)
+    }
+  }
+
+  const refreshAll = async () => {
+    if (!items?.length) return
+    setRefreshingAll(true)
+    let updated = 0
+    try {
+      for (const item of items.filter((i) => i.url)) {
+        const result = await api.market.refresh(item.id).catch(() => null)
+        if (result?.price_cents) updated += 1
+      }
+      toast(updated > 0 ? `已更新 ${updated} 个价格` : '没有读取到新价格，部分平台可能拦截了抓取')
+      reload()
+    } finally {
+      setRefreshingAll(false)
     }
   }
 
@@ -110,10 +137,11 @@ export default function Market() {
     <div className="page-enter">
       <PageHeader
         title="配件行情"
-        description="常用配件的参数、参考价和拼多多/京东/淘宝链接"
+        description="分享链接导入，记录参数与参考价；每天会自动尝试更新一次价格"
         actions={<>
-          <Button variant="secondary" onClick={() => setImportOpen(true)}><Upload size={15} /> 多多进宝导入</Button>
-          <Button onClick={openCreate}><Plus size={15} /> 新增配件</Button>
+          <Button variant="secondary" onClick={refreshAll} loading={refreshingAll}><RefreshCw size={15} /> 刷新价格</Button>
+          <Button variant="secondary" onClick={() => setLinkOpen(true)}><Link2 size={15} /> 分享链接导入</Button>
+          <Button onClick={() => openCreate()}><Plus size={15} /> 新增配件</Button>
         </>}
       />
 
@@ -136,18 +164,19 @@ export default function Market() {
       </div>
 
       {loading && !items ? <LoadingBlock /> : error ? <ErrorBlock message={error} onRetry={reload} /> : !items?.length ? (
-        <EmptyState icon={<PackageSearch size={22} />} title="还没有配件行情" description="可以手动添加，或配置多多进宝后直接搜索导入。" action={<Button onClick={openCreate}><Plus size={15} /> 新增配件</Button>} />
+        <EmptyState icon={<PackageSearch size={22} />} title="还没有配件行情" description="粘贴拼多多/京东/淘宝分享链接，或手动新增配件。" action={<Button onClick={() => setLinkOpen(true)}><Link2 size={15} /> 分享链接导入</Button>} />
       ) : (
         <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
           {items.map((item) => (
             <article key={item.id} className="card p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
+              <div className="flex items-start gap-3">
+                {item.image_url && <img src={item.image_url} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" referrerPolicy="no-referrer" />}
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Badge tone="brand">{item.category}</Badge>
                     <Badge tone="slate">{MARKET_PLATFORM_LABELS[item.platform]}</Badge>
                   </div>
-                  <h2 className="mt-2 text-sm font-semibold leading-snug text-slate-900">{item.name}</h2>
+                  <h2 className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-slate-900">{item.name}</h2>
                   <p className="mt-1 text-[11px] text-slate-400">{[item.brand, item.model].filter(Boolean).join(' · ') || '—'}</p>
                 </div>
                 <p className="shrink-0 text-lg font-bold tabular text-brand-600">{money(item.price_cents)}</p>
@@ -155,11 +184,14 @@ export default function Market() {
               {item.specs && <p className="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-[11px] leading-relaxed text-slate-600">{item.specs}</p>}
               <div className="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-400">
                 <span className="truncate">{item.shop_name || item.note || '—'}</span>
-                <span className="shrink-0">{item.updated_at.slice(0, 10)}</span>
+                <span className="shrink-0 text-right">
+                  {item.price_error ? <span className="text-amber-600">价格待手动更新</span> : item.price_checked_at ? `更新于 ${item.price_checked_at.slice(0, 10)}` : '尚未检查价格'}
+                </span>
               </div>
               <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-2">
                 {item.url && <a href={item.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[11px] text-brand-600 hover:underline"><ExternalLink size={12} /> 打开商品</a>}
                 <div className="ml-auto flex gap-1">
+                  {item.url && <Button size="sm" variant="ghost" onClick={() => refreshItem(item)} loading={refreshingId === item.id} title="更新价格"><RefreshCw size={13} /></Button>}
                   <Button size="sm" variant="ghost" onClick={() => openEdit(item)}><Pencil size={13} /></Button>
                   <Button size="sm" variant="ghost" onClick={() => remove(item)} className="text-slate-400 hover:text-rose-500"><Trash2 size={13} /></Button>
                 </div>
@@ -184,29 +216,12 @@ export default function Market() {
         </div>
       </Modal>
 
-      <Modal open={importOpen} onClose={() => setImportOpen(false)} title="从多多进宝导入" description="需要先在设置中配置 client_id、client_secret 和推广位 PID" footer={<Button variant="secondary" onClick={() => setImportOpen(false)}>关闭</Button>}>
-        <div className="flex gap-2">
-          <Input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="例如：9800X3D、4060、B650M" onKeyDown={(e) => { if (e.key === 'Enter') searchPdd() }} />
-          <Button onClick={searchPdd} loading={searching}><Search size={14} /> 搜索</Button>
-        </div>
-        <div className="mt-3"><Field label="导入到品类"><Select value={importCategory} onChange={(e) => setImportCategory(e.target.value)}>{MARKET_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field></div>
+      <Modal open={linkOpen} onClose={() => setLinkOpen(false)} title="分享链接导入" description="支持拼多多、京东、淘宝商品链接；读取失败时可手动填写" footer={<><Button variant="secondary" onClick={() => setLinkOpen(false)}>取消</Button><Button onClick={readLink} loading={reading}><Search size={14} /> 读取链接</Button></>}>
+        <Field label="商品链接"><Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="粘贴商品分享链接或浏览器地址" autoFocus /></Field>
+        <div className="mt-3"><Field label="导入到品类"><Select value={linkCategory} onChange={(e) => setLinkCategory(e.target.value)}>{MARKET_CATEGORIES.map((c) => <option key={c}>{c}</option>)}</Select></Field></div>
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[10px] leading-relaxed text-amber-700">
-          拼多多多多进宝对电脑/3C 品类覆盖很少，搜索 CPU、显卡、主板等可能返回 0 条。搜不到时请用「新增配件」手动保存京东/淘宝链接和报价。
+          京东/淘宝/拼多多的商品页可能拦截自动读取。读到标题和价格会预填；读不到时可以手动填写，之后每天系统会尝试更新一次价格，失败时保留旧价并提示。
         </p>
-        <div className="mt-4 max-h-[420px] space-y-2 overflow-y-auto">
-          {results.map((item) => (
-            <div key={item.external_id} className="flex gap-3 rounded-xl border border-slate-100 p-2.5">
-              {item.image_url && <img src={item.image_url} alt="" className="h-14 w-14 rounded-lg object-cover" referrerPolicy="no-referrer" />}
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-[11px] font-medium text-slate-800">{item.title}</p>
-                <p className="mt-1 text-sm font-bold text-brand-600">{money(item.price_cents)}</p>
-                <p className="text-[10px] text-slate-400">{item.shop_name}{item.sales_tip ? ` · ${item.sales_tip}` : ''}</p>
-              </div>
-              <Button size="sm" variant="secondary" onClick={() => importItem(item)}>保存</Button>
-            </div>
-          ))}
-          {results.length === 0 && <p className="py-8 text-center text-xs text-slate-400">输入关键词搜索拼多多商品</p>}
-        </div>
       </Modal>
     </div>
   )

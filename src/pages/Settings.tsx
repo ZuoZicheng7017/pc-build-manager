@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Database, Download, FileJson, HardDrive, Info, LayoutDashboard, RefreshCw, Save, ShieldCheck, ShoppingBag, Store, UserPlus, Users } from 'lucide-react'
-import type { Account, AffiliateConfig, Settings } from '../../shared/types'
+import { Database, Download, FileJson, HardDrive, Info, LayoutDashboard, RefreshCw, Save, ShieldCheck, Store, UserPlus, Users } from 'lucide-react'
+import type { Account, Settings } from '../../shared/types'
 import { api, errorMessage, type SystemInfo } from '../lib/api'
 import { useApi, useDocTitle } from '../lib/hooks'
 import { formatBytes, moneyInput, parseMoney } from '../lib/format'
@@ -13,12 +13,6 @@ export default function SettingsPage() {
   const { data: settings, loading, error, reload } = useApi<Settings>(() => api.settings.get(), [])
   const { data: info, loading: infoLoading, reload: reloadInfo } = useApi<SystemInfo>(() => api.settings.systemInfo(), [])
   const { data: auth } = useApi(() => api.auth.status(), [])
-  const { data: pddConfig, reload: reloadPdd } = useApi<AffiliateConfig>(() => api.market.pddConfig(), [])
-  const [pddClientId, setPddClientId] = useState('')
-  const [pddSecret, setPddSecret] = useState('')
-  const [pddPid, setPddPid] = useState('')
-  const [pddSaving, setPddSaving] = useState(false)
-  const [pddTesting, setPddTesting] = useState(false)
   const { data: accounts, reload: reloadAccounts } = useApi<Account[]>(
     () => (auth?.account?.is_admin ? api.accounts.list() : Promise.resolve([])),
     [auth?.account?.is_admin],
@@ -26,13 +20,6 @@ export default function SettingsPage() {
   const [newUsername, setNewUsername] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [accountSaving, setAccountSaving] = useState(false)
-  useEffect(() => {
-    if (!pddConfig) return
-    setPddClientId(pddConfig.client_id)
-    setPddPid(pddConfig.pid)
-    setPddSecret('')
-  }, [pddConfig])
-
   const [form, setForm] = useState({
     shop_name: '', shop_phone: '', shop_address: '', travel: '', labor: '', warranty: '',
     auto_backup_enabled: true, auto_backup_retention: '7', ui_mode: 'full' as 'full' | 'service',
@@ -56,32 +43,6 @@ export default function SettingsPage() {
       toast(errorMessage(err), 'error')
     } finally {
       setAccountSaving(false)
-    }
-  }
-
-  const savePdd = async () => {
-    setPddSaving(true)
-    try {
-      await api.market.savePddConfig({ client_id: pddClientId, client_secret: pddSecret, pid: pddPid })
-      setPddSecret('')
-      toast('多多进宝配置已保存')
-      reloadPdd()
-    } catch (err) {
-      toast(errorMessage(err), 'error')
-    } finally {
-      setPddSaving(false)
-    }
-  }
-
-  const testPdd = async () => {
-    setPddTesting(true)
-    try {
-      const { items } = await api.market.searchPdd('零食')
-      toast(`接口连接成功，测试词返回 ${items.length} 个商品`)
-    } catch (err) {
-      toast(errorMessage(err), 'error')
-    } finally {
-      setPddTesting(false)
     }
   }
 
@@ -290,35 +251,6 @@ export default function SettingsPage() {
             <div className="mt-3 rounded-xl bg-slate-50 px-3.5 py-3 text-[11px] leading-relaxed text-slate-500">
               <p><span className="font-medium text-slate-600">恢复方式：</span>停止服务，执行 <code className="rounded bg-white px-1 py-0.5 text-slate-600">pnpm restore 备份.zip --yes</code>，再启动即可；系统会先自动备份当前数据。</p>
               {info && <p className="mt-1 break-all text-slate-400">数据目录：{info.data_dir} · 备份目录：{info.backup_dir}</p>}
-            </div>
-          </section>
-
-          <section className="card p-4 sm:p-5">
-            <div className="mb-4 flex items-start gap-2">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600"><ShoppingBag size={16} /></span>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-sm font-semibold text-slate-900">多多进宝 API</h2>
-                  <span className={`rounded-full px-2 py-0.5 text-[9px] ${pddConfig?.configured ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>{pddConfig?.configured ? '已配置' : '未配置'}</span>
-                </div>
-                <p className="text-[11px] text-slate-400">用于「配件行情」里搜索拼多多商品和参考价；需要多多进宝推广位 PID</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label="client_id"><Input value={pddClientId} onChange={(e) => setPddClientId(e.target.value)} placeholder="拼多多开放平台 client_id" /></Field>
-              <Field label="推广位 PID"><Input value={pddPid} onChange={(e) => setPddPid(e.target.value)} placeholder="多多进宝推广位 PID" /></Field>
-              <div className="sm:col-span-2">
-                <Field label="client_secret" hint={pddConfig?.has_secret ? '已保存；留空表示不修改' : '只保存在本机账户数据库'}>
-                  <Input type="password" value={pddSecret} onChange={(e) => setPddSecret(e.target.value)} placeholder={pddConfig?.has_secret ? '••••••••（留空不修改）' : '拼多多开放平台 client_secret'} />
-                </Field>
-              </div>
-            </div>
-            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[10px] leading-relaxed text-slate-400">在拼多多开放平台创建应用并申请「多多进宝商品搜索」权限后填写；审核前可先手动维护行情。</p>
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={testPdd} loading={pddTesting}><RefreshCw size={14} /> 测试连接</Button>
-                <Button size="sm" onClick={savePdd} loading={pddSaving}><Save size={14} /> 保存配置</Button>
-              </div>
             </div>
           </section>
 

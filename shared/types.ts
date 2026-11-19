@@ -139,16 +139,10 @@ export interface MarketItem {
   price_cents: number
   shop_name: string
   note: string
+  image_url: string
+  price_checked_at: string
+  price_error: string
   created_at: string
-  updated_at: string
-}
-
-export interface AffiliateConfig {
-  platform: 'pdd'
-  client_id: string
-  pid: string
-  configured: boolean
-  has_secret: boolean
   updated_at: string
 }
 

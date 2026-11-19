@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { db, nowIso } from '../db'
-import { getPddConfig, savePddConfig, searchPdd } from '../affiliate'
+import { inspectProductLink, refreshMarketPrice } from '../market-link'
 import { HttpError, queryStr, readJson, sendJson, sendNoContent, validate, type Ctx, type Router } from '../http'
 
 const marketSchema = z.object({
@@ -11,6 +11,7 @@ const marketSchema = z.object({
   specs: z.string().trim().max(1000).optional(),
   platform: z.enum(['pdd', 'jd', 'taobao', 'manual']).default('manual'),
   url: z.string().trim().max(1000).optional(),
+  image_url: z.string().trim().max(1000).optional(),
   price_cents: z.coerce.number().int().min(0).max(100_000_000).default(0),
   shop_name: z.string().trim().max(200).optional(),
   note: z.string().trim().max(1000).optional(),
@@ -35,11 +36,11 @@ function listMarket(ctx: Ctx): void {
 async function createMarket(ctx: Ctx): Promise<void> {
   const body = validate(marketSchema, await readJson(ctx.req))
   const info = db.prepare(`
-    INSERT INTO market_items (category, name, brand, model, specs, platform, url, price_cents, shop_name, note, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO market_items (category, name, brand, model, specs, platform, url, image_url, price_cents, shop_name, note, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     String(body.category ?? '其他'), body.name, body.brand ?? '', body.model ?? '', body.specs ?? '', String(body.platform ?? 'manual'),
-    body.url ?? '', Number(body.price_cents ?? 0), body.shop_name ?? '', body.note ?? '', nowIso(), nowIso(),
+    body.url ?? '', body.image_url ?? '', Number(body.price_cents ?? 0), body.shop_name ?? '', body.note ?? '', nowIso(), nowIso(),
   )
   sendJson(ctx.res, db.prepare('SELECT * FROM market_items WHERE id = ?').get(Number(info.lastInsertRowid)), 201)
 }
@@ -49,11 +50,11 @@ async function updateMarket(ctx: Ctx): Promise<void> {
   if (!db.prepare('SELECT id FROM market_items WHERE id = ?').get(id)) throw new HttpError(404, '配件行情不存在')
   const body = validate(marketSchema, await readJson(ctx.req))
   db.prepare(`
-    UPDATE market_items SET category = ?, name = ?, brand = ?, model = ?, specs = ?, platform = ?, url = ?, price_cents = ?, shop_name = ?, note = ?, updated_at = ?
+    UPDATE market_items SET category = ?, name = ?, brand = ?, model = ?, specs = ?, platform = ?, url = ?, image_url = ?, price_cents = ?, shop_name = ?, note = ?, updated_at = ?
     WHERE id = ?
   `).run(
     String(body.category ?? '其他'), body.name, body.brand ?? '', body.model ?? '', body.specs ?? '', String(body.platform ?? 'manual'),
-    body.url ?? '', Number(body.price_cents ?? 0), body.shop_name ?? '', body.note ?? '', nowIso(), id,
+    body.url ?? '', body.image_url ?? '', Number(body.price_cents ?? 0), body.shop_name ?? '', body.note ?? '', nowIso(), id,
   )
   sendJson(ctx.res, db.prepare('SELECT * FROM market_items WHERE id = ?').get(id))
 }
@@ -63,48 +64,28 @@ function removeMarket(ctx: Ctx): void {
   sendNoContent(ctx.res)
 }
 
-function getAffiliate(ctx: Ctx): void {
-  const config = getPddConfig()
-  sendJson(ctx.res, {
-    platform: 'pdd',
-    client_id: config.client_id,
-    pid: config.pid,
-    configured: Boolean(config.client_id && config.client_secret && config.pid),
-    has_secret: Boolean(config.client_secret),
-    updated_at: config.updated_at,
-  })
-}
-
-async function saveAffiliate(ctx: Ctx): Promise<void> {
-  const body = await readJson<{ client_id?: string; client_secret?: string; pid?: string }>(ctx.req)
-  const config = savePddConfig(body)
-  sendJson(ctx.res, {
-    platform: 'pdd',
-    client_id: config.client_id,
-    pid: config.pid,
-    configured: Boolean(config.client_id && config.client_secret && config.pid),
-    has_secret: Boolean(config.client_secret),
-    updated_at: config.updated_at,
-  })
-}
-
-async function searchAffiliate(ctx: Ctx): Promise<void> {
-  const q = queryStr(ctx.url, 'q').trim()
-  if (!q) throw new HttpError(422, '请输入搜索关键词')
+async function inspectLink(ctx: Ctx): Promise<void> {
+  const body = await readJson<{ url?: string }>(ctx.req)
   try {
-    const items = await searchPdd(q, Number(queryStr(ctx.url, 'page') || 1))
-    sendJson(ctx.res, { items })
+    sendJson(ctx.res, await inspectProductLink(String(body.url ?? '')))
   } catch (err) {
-    throw new HttpError(422, err instanceof Error ? err.message : '多多进宝搜索失败')
+    throw new HttpError(422, err instanceof Error ? err.message : '链接读取失败')
+  }
+}
+
+async function refreshPrice(ctx: Ctx): Promise<void> {
+  try {
+    sendJson(ctx.res, await refreshMarketPrice(Number(ctx.params.id)))
+  } catch (err) {
+    throw new HttpError(422, err instanceof Error ? err.message : '价格更新失败')
   }
 }
 
 export function registerMarketRoutes(router: Router): void {
   router.get('/api/market', listMarket)
   router.post('/api/market', createMarket)
+  router.post('/api/market/inspect', inspectLink)
+  router.post('/api/market/:id/refresh', refreshPrice)
   router.put('/api/market/:id', updateMarket)
   router.delete('/api/market/:id', removeMarket)
-  router.get('/api/affiliate/pdd', getAffiliate)
-  router.put('/api/affiliate/pdd', saveAffiliate)
-  router.get('/api/affiliate/pdd/search', searchAffiliate)
 }
