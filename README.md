@@ -109,14 +109,14 @@ pnpm dev
 | `DATA_DIR` | `./data` | 数据库与上传文件目录 |
 | `BACKUP_DIR` | `./backups` | 完整备份与自动备份目录 |
 | `SEED_DEMO` | 未设置 | 设为 `1` 且员工表为空时写入一套演示数据 |
-| `APP_PASSWORD` | `Zzc010423` | 首次启动时创建主账户 `xiaozuozhuangji` 的初始密码；之后账户密码存在 `data/accounts.db` |
+| `APP_PASSWORD` | `admin123` | 首次启动时创建主账户 `xiaozuozhuangji` 的初始密码；之后账户密码存在 `data/accounts.db` |
 | `PDF_FONT_PATH` | 自动查找 Windows 黑体/雅黑 | 报价单 PDF 中文字体路径（非 Windows 部署需指定） |
 | `FFMPEG_PATH` | 使用项目内置 ffmpeg | 自定义 ffmpeg 可执行文件（可选） |
 
 首次启动后登录：
 
 - 用户名：`xiaozuozhuangji`
-- 初始密码：`.env` 里的 `APP_PASSWORD`（默认 `Zzc010423`）
+- 初始密码：`.env` 里的 `APP_PASSWORD`（默认 `admin123`）
 - 登录后可在「设置 → 账户管理」创建子账户；每个子账户从空库开始
 
 忘记密码可在项目目录执行：

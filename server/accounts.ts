@@ -70,7 +70,7 @@ export function ensureOwnerAccount(): void {
     const count = (control.prepare('SELECT COUNT(*) AS c FROM accounts').get() as { c: number }).c
     if (count > 0) return
     const salt = crypto.randomBytes(16).toString('hex')
-    const password = process.env.APP_PASSWORD || 'Zzc010423'
+    const password = process.env.APP_PASSWORD || 'admin123'
     control.prepare(`
       INSERT INTO accounts (username, password_hash, salt, is_admin, status, data_dir, created_at)
       VALUES (?, ?, ?, 1, 'active', ?, ?)
